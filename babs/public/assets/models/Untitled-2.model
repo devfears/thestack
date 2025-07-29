@@ -1,0 +1,9 @@
+# Made using Asset Forge (2.5.2)
+
+:materials
+
+[name:space_station_kit-colormap;color:RGBA(1.000, 1.000, 1.000, 1.000);scale:(1.0, 1.0);texture:Custom/space_station_kit-colormap;shader:Default;mapping:1;valueA:0.5;valueB:0;]
+
+:models
+
+[name:;collection:space station kit;type:floor;position:(-0.7000, 0.7400, 0.0900);rotation:(0.0000, 0.0000, 0.0000);scale:(21.6000, 4.2000, 24.7800);group:;locked:False;hidden:False;materials:space_station_kit-colormap;]

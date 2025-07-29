@@ -1,0 +1,16 @@
+{
+  "miniapp": {
+    "version": "1",
+    "name": "3D World Mini App",
+    "iconUrl": "https://young-cars-clean.loca.lt/assets/icon.svg",
+  "homeUrl": "https://young-cars-clean.loca.lt",
+  "imageUrl": "https://young-cars-clean.loca.lt/assets/preview.svg",
+  "buttonTitle": "🌍 Enter 3D World",
+  "splashImageUrl": "https://young-cars-clean.loca.lt/assets/icon.svg",
+    "splashBackgroundColor": "#667eea",
+    "requiredCapabilities": [
+      "actions.signIn",
+      "wallet.getEthereumProvider"
+    ]
+  }
+}

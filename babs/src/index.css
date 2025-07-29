@@ -1,0 +1,85 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+:root {
+  background-color: #181818;
+  color: rgba(255, 255, 255, 0.87);
+  color-scheme: light dark;
+  font-family: 'Press Start 2P', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-synthesis: none;
+  font-weight: 400;
+  line-height: 1.5;
+  text-rendering: optimizeLegibility;
+
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    background-color: #f8f8f8;
+    color: #181818;
+  }
+}
+
+/* Hide scrollbars while keeping scroll functionality */
+.hide-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari, Opera */
+}
+
+/* FID Display responsive styles */
+.fid-display {
+  top: 10px;
+  padding: clamp(4px, 1.5vw, 8px) clamp(6px, 2vw, 10px);
+  fontSize: clamp(8px, 2.5vw, 10px);
+  maxWidth: clamp(150px, 40vw, 220px);
+  minWidth: 120px;
+  lineHeight: 1.2;
+}
+
+.developer-nametag {
+  border: 2px solid transparent;
+  border-radius: 5px;
+  animation: rainbow-border 2s linear infinite;
+  background-clip: padding-box; /* Ensures the background doesn't spill into the border area */
+}
+
+@keyframes rainbow-border {
+  0% { border-color: red; }
+  14% { border-color: orange; }
+  28% { border-color: yellow; }
+  42% { border-color: green; }
+  57% { border-color: blue; }
+  71% { border-color: indigo; }
+  85% { border-color: violet; }
+  100% { border-color: red; }
+}
+
+/* Mobile styles for FID display */
+@media (max-width: 768px) {
+  .fid-display {
+    top: 60px; /* Move below layer progress UI */
+    padding: 4px 6px;
+    fontSize: 7px;
+    maxWidth: 100px;
+    minWidth: 80px;
+    lineHeight: 1.1;
+  }
+}
+
+/* Extra small mobile devices */
+@media (max-width: 480px) {
+  .fid-display {
+    top: 65px;
+    padding: 3px 5px;
+    fontSize: 6px;
+    maxWidth: 90px;
+    minWidth: 70px;
+    right: 5px;
+  }
+}

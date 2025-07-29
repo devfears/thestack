@@ -1,0 +1,29 @@
+{
+  "name": "farcaster-multiplayer-monorepo",
+  "version": "1.0.0",
+  "description": "Monorepo for Farcaster multiplayer game with frontend and backend",
+  "private": true,
+  "workspaces": [
+    "babs",
+    "multiplayer-server"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:client": "cd babs && npm run dev",
+    "dev:server": "cd multiplayer-server && npm run dev",
+    "build": "cd babs && npm run build",
+    "install:all": "npm install && npm run install:client && npm run install:server",
+    "install:client": "cd babs && npm install",
+    "install:server": "cd multiplayer-server && npm install",
+    "start": "concurrently \"npm run start:server\" \"npm run start:client\"",
+    "start:server": "cd multiplayer-server && npm start",
+    "start:client": "cd babs && npm run preview"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  }
+}

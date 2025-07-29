@@ -1,0 +1,26 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="worldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="100" cy="100" r="90" fill="url(#worldGradient)" stroke="#fff" stroke-width="4"/>
+  
+  <!-- Globe lines -->
+  <circle cx="100" cy="100" r="60" fill="none" stroke="#fff" stroke-width="2" opacity="0.7"/>
+  <ellipse cx="100" cy="100" rx="60" ry="30" fill="none" stroke="#fff" stroke-width="2" opacity="0.7"/>
+  <ellipse cx="100" cy="100" rx="30" ry="60" fill="none" stroke="#fff" stroke-width="2" opacity="0.7"/>
+  
+  <!-- Continents -->
+  <path d="M70 80 Q80 70 90 80 Q100 75 110 85 Q120 80 130 90 Q125 100 115 105 Q105 110 95 105 Q85 100 75 95 Q65 90 70 80" fill="#fff" opacity="0.8"/>
+  <path d="M80 120 Q90 115 100 125 Q110 120 120 130 Q115 140 105 135 Q95 140 85 135 Q75 130 80 120" fill="#fff" opacity="0.8"/>
+  
+  <!-- 3D effect highlight -->
+  <circle cx="85" cy="85" r="15" fill="#fff" opacity="0.3"/>
+  
+  <!-- Center dot -->
+  <circle cx="100" cy="100" r="3" fill="#fff"/>
+</svg>

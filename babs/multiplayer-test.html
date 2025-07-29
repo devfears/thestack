@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiplayer Debug Helper</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .button {
+            background: #333;
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .button:hover {
+            background: #00ff00;
+            color: #1a1a1a;
+        }
+        .output {
+            background: #000;
+            border: 1px solid #333;
+            padding: 15px;
+            margin: 10px 0;
+            height: 400px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+        .status {
+            background: #222;
+            padding: 10px;
+            margin: 10px 0;
+            border-left: 4px solid #00ff00;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 Multiplayer Debug Helper</h1>
+        
+        <div class="status">
+            <strong>Instructions:</strong><br>
+            1. Open your game in multiple tabs<br>
+            2. Use the buttons below to debug multiplayer issues<br>
+            3. Check the console output for detailed information
+        </div>
+        
+        <div>
+            <button class="button" onclick="debugMultiplayer()">🔍 Debug Multiplayer</button>
+            <button class="button" onclick="forceCleanupPlayers()">🧹 Force Cleanup Players</button>
+            <button class="button" onclick="toggleDebugBoxes()">📦 Toggle Debug Boxes</button>
+            <button class="button" onclick="clearOutput()">🗑️ Clear Output</button>
+        </div>
+        
+        <div>
+            <button class="button" onclick="testConnection()">🔌 Test Connection</button>
+            <button class="button" onclick="forceSync()">🔄 Force Sync</button>
+            <button class="button" onclick="listPlayers()">👥 List Players</button>
+            <button class="button" onclick="simulateDisconnect()">🚪 Simulate Disconnect</button>
+        </div>
+        
+        <div class="output" id="output">
+            <div>Console output will appear here...</div>
+        </div>
+    </div>
+
+    <script>
+        // Capture console output
+        const output = document.getElementById('output');
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        function addToOutput(message, type = 'log') {
+            const div = document.createElement('div');
+            div.style.color = type === 'error' ? '#ff4444' : type === 'warn' ? '#ffaa00' : '#00ff00';
+            div.textContent = new Date().toLocaleTimeString() + ' - ' + message;
+            output.appendChild(div);
+            output.scrollTop = output.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addToOutput(args.join(' '), 'log');
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addToOutput(args.join(' '), 'error');
+        };
+        
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            addToOutput(args.join(' '), 'warn');
+        };
+        
+        function clearOutput() {
+            output.innerHTML = '<div>Console cleared...</div>';
+        }
+        
+        function debugMultiplayer() {
+            if (typeof window.parent.gameManager !== 'undefined') {
+                window.parent.gameManager.debugMultiplayer();
+            } else {
+                console.error('GameManager not found. Make sure the game is running.');
+            }
+        }
+        
+        function forceCleanupPlayers() {
+            if (typeof window.parent.gameManager !== 'undefined') {
+                window.parent.gameManager.forceCleanupRemotePlayers();
+            } else {
+                console.error('GameManager not found.');
+            }
+        }
+        
+        function toggleDebugBoxes() {
+            if (typeof window.parent.gameManager !== 'undefined') {
+                window.parent.gameManager.toggleRemotePlayerDebug();
+            } else {
+                console.error('GameManager not found.');
+            }
+        }
+        
+        function testConnection() {
+            if (typeof window.parent.gameManager !== 'undefined') {
+                const gm = window.parent.gameManager;
+                console.log('Connection status:', gm.isMultiplayerConnected());
+                console.log('Remote players:', gm.getRemotePlayerCount());
+            } else {
+                console.error('GameManager not found.');
+            }
+        }
+        
+        function forceSync() {
+            if (typeof window.parent.gameManager !== 'undefined') {
+                window.parent.gameManager.forceSyncMultiplayer();
+                console.log('Forced multiplayer sync');
+            } else {
+                console.error('GameManager not found.');
+            }
+        }
+        
+        function listPlayers() {
+            if (typeof window.parent.gameManager !== 'undefined') {
+                window.parent.gameManager.debugRemotePlayersInfo();
+            } else {
+                console.error('GameManager not found.');
+            }
+        }
+        
+        function simulateDisconnect() {
+            if (typeof window.parent.gameManager !== 'undefined') {
+                window.parent.gameManager.disconnectFromMultiplayer();
+                console.log('Simulated disconnect');
+                setTimeout(() => {
+                    console.log('Attempting reconnect...');
+                    // You would need to implement reconnect logic
+                }, 2000);
+            } else {
+                console.error('GameManager not found.');
+            }
+        }
+        
+        console.log('🔧 Multiplayer debug helper loaded!');
+    </script>
+</body>
+</html>
