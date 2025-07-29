@@ -1,13 +1,27 @@
-# Farcaster Multiplayer Game - Monorepo
+# The Stack - Farcaster 3D Tower Building Game
 
-This is a monorepo containing both the frontend and backend for the Farcaster multiplayer game.
+A collaborative 3D tower building game built for the Farcaster ecosystem. Players can build together in real-time using colorful blocks in a shared 3D environment.
 
-## Project Structure
+## 🎮 Features
+
+- **3D Building System**: Layer-based construction with grid snapping
+- **Multiplayer Support**: Real-time collaboration with WebSocket synchronization
+- **Character System**: Animated 3D characters with physics and movement
+- **Mobile-Friendly**: Touch controls and responsive design
+- **Performance Optimized**: InstancedMesh rendering for thousands of blocks
+- **Visual Feedback**: Ghost brick preview, boundary detection, and progress tracking
+- **Random Colors**: 12-color palette for vibrant building creations
+
+## 🏗️ Project Structure
 
 ```
-├── babs/                    # Frontend React application
-├── multiplayer-server/      # Backend Node.js server
-└── package.json            # Root package.json for monorepo
+├── babs/                    # Frontend React + Three.js application
+│   ├── src/game/           # Core game systems
+│   ├── public/assets/      # 3D models and textures
+│   └── src/components/     # React components
+├── multiplayer-server/      # Node.js WebSocket server
+├── test-*.js               # Testing and debugging scripts
+└── *.md                    # Documentation files
 ```
 
 ## Getting Started
@@ -32,58 +46,65 @@ npm run install:server   # Backend dependencies
 
 ### Development
 
-Run both frontend and backend simultaneously:
+1. **Frontend Development** (Main Game):
 ```bash
+cd babs
+npm install
 npm run dev
 ```
+Game will be available at http://localhost:5176
 
-This will start:
-- Frontend on http://localhost:5174 (or next available port)
-- Backend on http://localhost:3001
-
-### Individual Commands
-
-Run only the frontend:
+2. **Multiplayer Server** (Optional):
 ```bash
-npm run dev:client
+cd multiplayer-server
+npm install
+node index.js
+```
+Server runs on http://localhost:3001
+
+3. **Full Stack Development**:
+```bash
+npm run install:all  # Install all dependencies
+npm run dev          # Run both frontend and backend
 ```
 
-Run only the backend:
-```bash
-npm run dev:server
-```
+## 🎮 How to Play
 
-### Production
+1. **Movement**: Use WASD keys or touch controls to move your character
+2. **Pickup Bricks**: Press E near the brick pile to pick up a colored brick
+3. **Place Bricks**: Press B to place bricks and build your tower
+4. **Building**: Bricks snap to a grid system for organized construction
+5. **Multiplayer**: Other players appear as characters in your world
 
-Build the frontend:
-```bash
-npm run build
-```
+## 🛠️ Game Systems
 
-Start production servers:
-```bash
-npm start
-```
+### Core Systems
+- **UnifiedBrickSystem**: Handles brick placement, pickup, and physics
+- **AnimationSystem**: Character animations and movement
+- **PhysicsSystem**: Collision detection and character physics
+- **MultiplayerCore**: Real-time synchronization between players
+- **SceneSystem**: 3D world rendering and lighting
 
-## Features
+### Building Features
+- **Grid Snapping**: Blocks automatically align to a construction grid
+- **Ghost Brick Preview**: See where your brick will be placed
+- **Random Colors**: Each brick gets a random color from 12 vibrant options
+- **Performance Optimization**: InstancedMesh rendering for thousands of blocks
+- **Layer System**: Build layer by layer with completion tracking
 
-- **Monorepo Setup**: Both frontend and backend in a single repository
-- **Concurrent Development**: Run both services with a single command
-- **Workspace Management**: Uses npm workspaces for dependency management
-- **Multiplayer Game**: Real-time multiplayer functionality with Socket.IO
-- **Farcaster Integration**: Built for Farcaster frames and miniapps
-
-## Technology Stack
+## 🔧 Technology Stack
 
 ### Frontend (babs/)
-- React + TypeScript
-- Vite
-- Three.js for 3D graphics
-- Socket.IO client for real-time communication
-- Farcaster SDK integration
+- **React 18** + **TypeScript** - Modern UI framework
+- **Three.js** - 3D graphics and rendering
+- **Vite** - Fast development and building
+- **WebSocket** - Real-time multiplayer communication
+- **Farcaster SDK** - Frame integration
 
 ### Backend (multiplayer-server/)
-- Node.js + Express
+- **Node.js** + **Express** - Server runtime
+- **Colyseus** - Multiplayer game server framework
+- **WebSocket** - Real-time communication
 - Socket.IO for real-time communication
 - CORS enabled for cross-origin requests
 
