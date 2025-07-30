@@ -213,9 +213,7 @@ function App() {
       // For remote players: only consider game/chat state (not affected by camera mode)
       const remoteNametagVisible = baseVisibility;
       // Use the correct method to set remote player nametag visibility
-      if (gameManager.multiplayerManager) {
-        gameManager.multiplayerManager.setNametagVisible(remoteNametagVisible);
-      }
+      gameManager.setRemoteNametagVisible(remoteNametagVisible);
     }
   }, [gameStarted, showChat, cameraFollowEnabled]);
 
@@ -361,7 +359,7 @@ function App() {
                   }}>
                   FID: {user.fid}<br/>
                   {multiplayerConnected ? (
-                    <span style={{ color: '#2ecc71' }}>🌐 Online ({remotePlayerCount + 1} players)</span>
+                    <span style={{ color: '#2ecc71' }}>Online</span>
                   ) : (
                     <span style={{ color: '#e74c3c' }}>🔌 Offline</span>
                   )}
@@ -373,6 +371,7 @@ function App() {
               {/* Chat toggle button */}
               <button
                 onClick={handleToggleChat}
+                className="mobile-control-button mobile-chat-button"
                 style={{
                   position: 'fixed',
                   top: '10px',
@@ -427,6 +426,7 @@ function App() {
               {/* Camera control button */}
               <button
                 onClick={handleToggleCamera}
+                className="mobile-control-button mobile-camera-button"
                 style={{
                   position: 'fixed',
                   top: '70px', // Position below chat button

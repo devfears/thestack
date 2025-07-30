@@ -60,7 +60,7 @@ export class LayerProgressUI {
     this.playerCountText.style.marginBottom = '4px';
     this.playerCountText.style.textShadow = '1px 1px 0px #000000';
     this.playerCountText.style.letterSpacing = '0.5px';
-    this.playerCountText.innerText = 'Online (1 player)';
+    this.playerCountText.innerText = '1 builder';
     this.container.appendChild(this.playerCountText);
 
     const progressBarContainer = document.createElement('div');
@@ -88,8 +88,6 @@ export class LayerProgressUI {
     this.hide(); // Initially hidden
   }
 
-
-
   private update(): void {
     const currentLayer = this.brickSystem.getCurrentActiveLayer();
     const progress = this.brickSystem.getLayerProgress(currentLayer);
@@ -97,9 +95,9 @@ export class LayerProgressUI {
     this.progressText.innerText = `Layer ${currentLayer + 1}`;
     this.progressBar.style.width = `${progress.percentage}%`;
 
-    // Update player count with proper pluralization
-    const playerText = this.currentPlayerCount === 1 ? 'player' : 'players';
-    this.playerCountText.innerText = `Online (${this.currentPlayerCount} ${playerText})`;
+    // Update builder count with proper pluralization
+    const builderText = this.currentPlayerCount === 1 ? 'builder' : 'builders';
+    this.playerCountText.innerText = `${this.currentPlayerCount} ${builderText}`;
 
     // Show brick counter for layer 1 (index 0) once brick placement begins
     if (currentLayer === 0 && progress.filled > 0) {
@@ -112,7 +110,7 @@ export class LayerProgressUI {
     // Debug: Log layer update every 10 seconds to avoid spam
     const now = Date.now();
     if (!this.lastDebugLog || now - this.lastDebugLog > 10000) {
-      console.log(`🔄 LayerProgressUI update: Layer ${currentLayer + 1}, ${progress.filled}/${progress.total} bricks (${progress.percentage.toFixed(1)}%), ${this.currentPlayerCount} players`);
+      
       this.lastDebugLog = now;
     }
   }
@@ -130,7 +128,7 @@ export class LayerProgressUI {
   }
 
   public updatePlayerCount(count: number): void {
-    console.log(`🎮 LayerProgressUI: Updating player count to ${count}`);
+    
     this.currentPlayerCount = count;
   }
 
