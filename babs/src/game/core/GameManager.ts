@@ -32,6 +32,7 @@ export class GameManager {
   private multiplayerSystem: SimpleMultiplayerSystem;
   private uiManager: UIManager;
   private layerProgressUI: LayerProgressUI | null = null;
+  private gameStarted: boolean = false;
 
   // New managers
   private lifecycleManager!: GameLifecycleManager;
@@ -180,9 +181,9 @@ export class GameManager {
     // Initialize the game
     this.init();
     
-    // Initialize LayerProgressUI after brick system is ready
+    // Initialize LayerProgressUI after brick system is ready (but keep it hidden)
     this.layerProgressUI = new LayerProgressUI(this.brickSystem);
-    this.layerProgressUI.show(); // Ensure it's visible
+    this.layerProgressUI.hide(); // Keep hidden until game starts
     
     // Set initial player count (1 for local player)
     this.layerProgressUI.updatePlayerCount(1);
@@ -465,7 +466,12 @@ export class GameManager {
   }
 
   public showLayerProgressUI(): void {
+    this.gameStarted = true;
     this.layerProgressUI?.show();
+    
+    // Enable name tags now that game has started
+    this.multiplayerSystem.setNametagVisible(true);
+    console.log('🎮 Game started - UI and nametags now visible');
   }
 
   public hideLayerProgressUI(): void {

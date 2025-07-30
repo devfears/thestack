@@ -1,7 +1,30 @@
 {
-  "tower": [],
+  "tower": [
+    {
+      "position": {
+        "x": -2.4000000000000004,
+        "y": 2.37,
+        "z": 12.400000000000002
+      },
+      "worldPosition": {
+        "x": -2.4000000000000004,
+        "y": 2.37,
+        "z": 12.400000000000002
+      },
+      "color": 10656766,
+      "gridPosition": {
+        "x": 16,
+        "z": 23,
+        "layer": 0
+      },
+      "timestamp": 1753902081099,
+      "playerId": "aqUr4BXV23qvWp8EAAAD",
+      "playerName": "Demo User 3731",
+      "id": "aqUr4BXV23qvWp8EAAAD-1753902081099-1xueiygyo"
+    }
+  ],
   "currentLayer": 0,
-  "lastUpdated": 1753820091685,
+  "lastUpdated": 1753902324837,
   "version": 1,
-  "lastLoaded": 1753820061684
+  "lastLoaded": 1753902294836
 }

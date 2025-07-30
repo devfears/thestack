@@ -141,22 +141,24 @@ export class ConnectionStateManager {
   }
 
   private setupPageVisibilityHandling(): void {
+    // DISABLED: Page visibility handling interferes with multi-tab testing
+    // The SimpleMultiplayerSystem now handles tab switching properly
+    
     // Handle page visibility changes
     document.addEventListener('visibilitychange', () => {
       this.isPageVisible = !document.hidden;
       
-      if (this.isPageVisible) {
-        
-        // If we have a user but no connection, attempt reconnection
-        if (this.currentUser && this.connectionState === 'disconnected') {
-          
-          this.scheduleReconnection();
-        }
-      } else {
-        
-        // Don't disconnect immediately, just stop reconnection attempts
-        this.clearReconnectTimer();
-      }
+      // Only log visibility changes, don't trigger reconnections
+      console.log(`👁️ ConnectionStateManager: Tab ${this.isPageVisible ? 'visible' : 'hidden'}`);
+      
+      // Don't auto-reconnect on visibility changes for multi-tab support
+      // if (this.isPageVisible) {
+      //   if (this.currentUser && this.connectionState === 'disconnected') {
+      //     this.scheduleReconnection();
+      //   }
+      // } else {
+      //   this.clearReconnectTimer();
+      // }
     });
 
     // Handle page unload

@@ -51,9 +51,17 @@ export class SimpleMultiplayerSystem {
   private lastPositionUpdate: number = 0;
   private positionUpdateInterval: number = 50; // 20 FPS for position updates
   
+  // Tab visibility handling
+  private isTabVisible: boolean = true;
+  private pausedAnimations: Map<string, boolean> = new Map();
+  
+  // Game state tracking
+  private nametagsEnabled: boolean = false;
+  
   constructor(gameManager: GameManager, scene: THREE.Scene) {
     this.gameManager = gameManager;
     this.scene = scene;
+    this.setupTabVisibilityHandling();
   }
 
   public async connect(user: UserProfile): Promise<boolean> {
@@ -69,8 +77,10 @@ export class SimpleMultiplayerSystem {
     
     try {
       this.socket = io(serverUrl, {
-        timeout: 5000,
-        reconnection: false
+        timeout: 10000,
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 2000
       });
 
       return new Promise((resolve) => {
@@ -143,10 +153,34 @@ export class SimpleMultiplayerSystem {
     });
 
     // Disconnection
-    this.socket.on('disconnect', () => {
-      console.log('🔌 Disconnected from server');
+    this.socket.on('disconnect', (reason) => {
+      console.log('🔌 Disconnected from server:', reason);
       this.isConnected = false;
       this.clearAllRemotePlayers();
+    });
+
+    // Reconnection events
+    this.socket.on('reconnect', (attemptNumber) => {
+      console.log(`✅ Reconnected after ${attemptNumber} attempts`);
+      this.isConnected = true;
+      
+      // Re-send join event and request fresh state
+      if (this.localPlayer) {
+        this.socket!.emit('player-join', this.localPlayer);
+        setTimeout(() => {
+          console.log('🔄 Requesting fresh game state after reconnect...');
+          this.socket!.emit('request-force-sync');
+        }, 500);
+      }
+    });
+
+    this.socket.on('reconnect_attempt', (attemptNumber) => {
+      console.log(`🔄 Reconnection attempt ${attemptNumber}`);
+    });
+
+    this.socket.on('reconnect_failed', () => {
+      console.log('❌ Reconnection failed - no more attempts');
+      this.isConnected = false;
     });
   }
 
@@ -154,21 +188,36 @@ export class SimpleMultiplayerSystem {
     const localId = this.socket?.id;
     if (!localId) return;
 
-    // Clear existing remote players
-    this.clearAllRemotePlayers();
+    // Get current remote player IDs
+    const currentPlayerIds = new Set(this.remotePlayers.keys());
+    const newPlayerIds = new Set(players.filter(p => p.id !== localId).map(p => p.id));
 
-    // Add remote players (exclude local player)
-    let remotePlayerCount = 0;
+    // Remove players that are no longer in the list
+    for (const playerId of currentPlayerIds) {
+      if (!newPlayerIds.has(playerId)) {
+        console.log(`➖ Removing disconnected player: ${this.remotePlayers.get(playerId)?.displayName}`);
+        this.removeRemotePlayer(playerId);
+      }
+    }
+
+    // Add or update existing players
     const addPlayerPromises: Promise<void>[] = [];
+    let remotePlayerCount = 0;
     
     for (const playerData of players) {
       if (playerData.id !== localId) {
-        addPlayerPromises.push(this.addRemotePlayer(playerData));
+        if (!this.remotePlayers.has(playerData.id)) {
+          // New player - add them
+          addPlayerPromises.push(this.addRemotePlayer(playerData));
+        } else {
+          // Existing player - update position only
+          this.updateRemotePlayer(playerData);
+        }
         remotePlayerCount++;
       }
     }
 
-    // Wait for all players to be added
+    // Wait for new players to be added
     await Promise.all(addPlayerPromises);
 
     // Update player count (remote + local)
@@ -312,6 +361,8 @@ export class SimpleMultiplayerSystem {
       
       // Create optimized nametag
       const nametagDiv = this.createOptimizedNametag(player.displayName);
+      // Initially hide nametag until game starts
+      nametagDiv.style.display = this.nametagsEnabled ? 'block' : 'none';
       document.body.appendChild(nametagDiv);
       (remotePlayerContainer as any).nametagElement = nametagDiv;
       
@@ -411,6 +462,8 @@ export class SimpleMultiplayerSystem {
 
     // Create optimized nametag
     const nametagDiv = this.createOptimizedNametag(player.displayName);
+    // Initially hide nametag until game starts
+    nametagDiv.style.display = this.nametagsEnabled ? 'block' : 'none';
     document.body.appendChild(nametagDiv);
     (group as any).nametagElement = nametagDiv;
 
@@ -531,9 +584,10 @@ export class SimpleMultiplayerSystem {
     console.log(`✅ Game state sync complete: ${gameState.tower.length} bricks placed`);
   }
 
-  private clearAllRemotePlayers(): void {
-    // Remove meshes from scene and clean up nametags
-    for (const [, mesh] of this.remotePlayerMeshes) {
+  private removeRemotePlayer(playerId: string): void {
+    // Remove specific player mesh from scene and clean up nametag
+    const mesh = this.remotePlayerMeshes.get(playerId);
+    if (mesh) {
       this.scene.remove(mesh);
       
       // Remove nametag element if it exists
@@ -543,16 +597,25 @@ export class SimpleMultiplayerSystem {
       }
     }
 
-    // Dispose of animation mixers
-    for (const [, mixer] of this.remotePlayerMixers) {
+    // Dispose of animation mixer for this player
+    const mixer = this.remotePlayerMixers.get(playerId);
+    if (mixer) {
       mixer.stopAllAction();
     }
 
-    // Clear maps
-    this.remotePlayers.clear();
-    this.remotePlayerMeshes.clear();
-    this.remotePlayerMixers.clear();
-    this.remotePlayerAnimations.clear();
+    // Remove from maps
+    this.remotePlayers.delete(playerId);
+    this.remotePlayerMeshes.delete(playerId);
+    this.remotePlayerMixers.delete(playerId);
+    this.remotePlayerAnimations.delete(playerId);
+  }
+
+  private clearAllRemotePlayers(): void {
+    // Remove all players using the individual removal method
+    const playerIds = Array.from(this.remotePlayers.keys());
+    for (const playerId of playerIds) {
+      this.removeRemotePlayer(playerId);
+    }
   }
 
   // Public API
@@ -645,9 +708,12 @@ export class SimpleMultiplayerSystem {
   public update(deltaTime: number): void {
     const camera = this.gameManager.getCamera();
     
+    // Clamp deltaTime to prevent animation jumps when tab becomes active
+    const clampedDelta = Math.min(deltaTime, 0.033); // Max 33ms (30fps equivalent)
+    
     // Update animation mixers for remote players
     for (const [, mixer] of this.remotePlayerMixers) {
-      mixer.update(deltaTime);
+      mixer.update(clampedDelta);
     }
     
     // Smooth interpolation for remote players
@@ -677,8 +743,8 @@ export class SimpleMultiplayerSystem {
         const gameState = this.gameManager.getGameState();
         const isFreeCameraMode = !gameState.cameraFollowEnabled;
         
-        if (isFreeCameraMode) {
-          // Hide nametags in free camera mode
+        if (isFreeCameraMode || !this.nametagsEnabled) {
+          // Hide nametags in free camera mode or if game hasn't started
           nametagElement.style.display = 'none';
         } else {
           // Use optimized nametag positioning
@@ -703,7 +769,7 @@ export class SimpleMultiplayerSystem {
     nametagDiv.style.fontFamily = '"Press Start 2P", cursive';
     nametagDiv.style.textAlign = 'center';
     nametagDiv.style.pointerEvents = 'none';
-    nametagDiv.style.zIndex = '999'; // Below chat box (1000)
+    nametagDiv.style.zIndex = '50'; // Below UI elements
     nametagDiv.style.whiteSpace = 'nowrap';
     nametagDiv.style.textShadow = '1px 1px 0px #000000';
     nametagDiv.style.letterSpacing = '0.5px';
@@ -751,10 +817,27 @@ export class SimpleMultiplayerSystem {
     const distance = camera.position.distanceTo(worldPosition);
     const baseScale = Math.max(0.8, Math.min(1.5, 8 / distance)); // Scale between 0.8x and 1.5x
     
-    // Check for chat box overlap and adjust position
-    const chatBox = document.querySelector('[style*="position: fixed"][style*="top: 70px"]') as HTMLElement; // Look for chat box by its positioning
+    // Check for UI element overlap and adjust position
     let adjustedY = y - nametagElement.offsetHeight;
     
+    // Check for layer UI overlap (top center)
+    const layerUI = document.querySelector('[style*="position: absolute"][style*="top: 10px"]') as HTMLElement;
+    if (layerUI && !layerUI.style.display.includes('none')) {
+      const layerUIRect = layerUI.getBoundingClientRect();
+      const nametagWidth = nametagElement.offsetWidth;
+      
+      // Check if nametag would overlap with layer UI
+      if (x + nametagWidth/2 > layerUIRect.left && 
+          x - nametagWidth/2 < layerUIRect.right && 
+          adjustedY < layerUIRect.bottom + 10 && 
+          adjustedY + nametagElement.offsetHeight > layerUIRect.top) {
+        // Move nametag below layer UI
+        adjustedY = layerUIRect.bottom + 10;
+      }
+    }
+    
+    // Check for chat box overlap
+    const chatBox = document.querySelector('[style*="position: fixed"][style*="top: 70px"]') as HTMLElement;
     if (chatBox && !chatBox.style.display.includes('none')) {
       const chatBoxRect = chatBox.getBoundingClientRect();
       const nametagWidth = nametagElement.offsetWidth;
@@ -777,17 +860,20 @@ export class SimpleMultiplayerSystem {
   }
 
   public setNametagVisible(visible: boolean): void {
+    console.log(`👁️ Setting nametags ${visible ? 'visible' : 'hidden'}`);
+    this.nametagsEnabled = visible;
+    
     // Control visibility of all remote player nametags
     for (const [, mesh] of this.remotePlayerMeshes) {
       const nametagElement = (mesh as any).nametagElement;
       if (nametagElement) {
         if (visible) {
-          // Only show if not in free camera mode
+          // Only show if not in free camera mode and game has started
           const gameState = this.gameManager.getGameState();
           const isFreeCameraMode = !gameState.cameraFollowEnabled;
-          nametagElement.style.visibility = isFreeCameraMode ? 'hidden' : 'visible';
+          nametagElement.style.display = isFreeCameraMode ? 'none' : 'block';
         } else {
-          nametagElement.style.visibility = 'hidden';
+          nametagElement.style.display = 'none';
         }
       }
     }
@@ -833,7 +919,56 @@ export class SimpleMultiplayerSystem {
     window.dispatchEvent(chatEvent);
   }
 
+  private setupTabVisibilityHandling(): void {
+    // Handle page visibility changes to prevent desync
+    document.addEventListener('visibilitychange', () => {
+      const wasVisible = this.isTabVisible;
+      this.isTabVisible = !document.hidden;
+      
+      console.log(`👁️ Tab visibility changed: ${this.isTabVisible ? 'visible' : 'hidden'}`);
+      
+      if (!wasVisible && this.isTabVisible) {
+        // Tab became visible - resume animations and sync state
+        console.log('🔄 Tab became visible - resuming animations');
+        this.resumeAllAnimations();
+        
+        // Request fresh player positions to avoid desync
+        if (this.socket && this.isConnected) {
+          setTimeout(() => {
+            console.log('🔄 Requesting position sync after tab focus...');
+            this.socket!.emit('request-player-sync');
+          }, 100);
+        }
+      } else if (wasVisible && !this.isTabVisible) {
+        // Tab became hidden - note current animation states
+        console.log('⏸️ Tab became hidden - saving animation states');
+        this.saveAnimationStates();
+      }
+    });
+  }
+
+  private saveAnimationStates(): void {
+    for (const [playerId, player] of this.remotePlayers) {
+      this.pausedAnimations.set(playerId, player.isMoving || false);
+    }
+  }
+
+  private resumeAllAnimations(): void {
+    for (const [playerId, player] of this.remotePlayers) {
+      const wasMoving = this.pausedAnimations.get(playerId) || false;
+      // Ensure animation state is correct
+      const targetAnimation = wasMoving ? 'walk' : 'idle';
+      if (player.currentAnimation !== targetAnimation) {
+        this.updateRemotePlayerAnimation(playerId, targetAnimation);
+      }
+    }
+    this.pausedAnimations.clear();
+  }
+
   public dispose(): void {
+    // Remove visibility event listener
+    document.removeEventListener('visibilitychange', () => {});
+    
     // Stop all animation mixers
     for (const [, mixer] of this.remotePlayerMixers) {
       mixer.stopAllAction();

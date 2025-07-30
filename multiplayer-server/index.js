@@ -12,7 +12,10 @@ const io = socketIo(server, {
     origin: "*",
     methods: ["GET", "POST"],
     credentials: true
-  }
+  },
+  pingTimeout: 60000,  // 60 seconds before timeout
+  pingInterval: 25000, // Send ping every 25 seconds
+  connectTimeout: 45000 // 45 seconds connection timeout
 });
 
 app.use(cors({
@@ -111,6 +114,13 @@ io.on('connection', (socket) => {
   // Handle heartbeat from clients
   socket.on('heartbeat', (data) => {
     socket.emit('heartbeat-ack', { timestamp: Date.now() });
+  });
+
+  // Handle player sync requests (for tab switching)
+  socket.on('request-player-sync', () => {
+    console.log(`🔄 Player sync requested by ${socket.id}`);
+    // Send current players list to requesting client
+    socket.emit('current-players', Array.from(players.values()));
   });
 
   // Handle force sync requests
