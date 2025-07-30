@@ -132,15 +132,14 @@ export class InteractionSystem {
     const brickPile = this.sceneObjects.brickPile;
     
     if (!character || !brickPile) {
-      console.log('🚫 Character or brick pile not found');
+      
       return;
     }
     
     const distance = character.position.distanceTo(brickPile.position);
-    console.log('📏 Distance to brick pile:', distance);
     
     if (distance > 3) { // Must be within 3 units (same as keyboard interaction)
-      console.log('🚫 Too far from brick pile - get closer (within 3 units) and try again');
+      
       this.gameManager.getUIManager().showToast('Get closer to the brick pile to pick up a brick.', 2000);
       return;
     }
@@ -149,12 +148,12 @@ export class InteractionSystem {
     if (!this.gameState.isCarryingBrick) {
       const success = this.gameManager.getBuildingSystem().pickupBrick();
       if (success) {
-        console.log('✅ Successfully picked up brick from pile');
+        
       } else {
-        console.log('🚫 Failed to pick up brick');
+        
       }
     } else {
-      console.log('🚫 Already carrying a brick - place it first');
+      
     }
   }
 

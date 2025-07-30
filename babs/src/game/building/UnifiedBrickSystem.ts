@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { SceneObjects, GameState } from '../core/types';
-import { MultiplayerSystem } from '../systems/MultiplayerSystemNew';
+import { SimpleMultiplayerSystem } from '../systems/multiplayer/SimpleMultiplayerSystem';
 import { AnimationSystemManager } from '../character/AnimationSystem';
 
 export interface BrickPosition {
@@ -13,7 +13,7 @@ export class UnifiedBrickSystem {
   private scene: THREE.Scene;
   private sceneObjects: SceneObjects;
   private gameState: GameState;
-  private multiplayerSystem: MultiplayerSystem;
+  private multiplayerSystem: SimpleMultiplayerSystem;
   private animationSystem: AnimationSystemManager;
   
   // Simple configuration
@@ -48,7 +48,7 @@ export class UnifiedBrickSystem {
   private lastPerformanceCheck: number = 0;
   private frameCount: number = 0;
 
-  constructor(scene: THREE.Scene, sceneObjects: SceneObjects, gameState: GameState, multiplayerSystem: MultiplayerSystem, animationSystem: AnimationSystemManager) {
+  constructor(scene: THREE.Scene, sceneObjects: SceneObjects, gameState: GameState, multiplayerSystem: SimpleMultiplayerSystem, animationSystem: AnimationSystemManager) {
     this.scene = scene;
     this.sceneObjects = sceneObjects;
     this.gameState = gameState;
@@ -59,25 +59,14 @@ export class UnifiedBrickSystem {
   }
 
   private initializeSystem(): void {
-    console.log('🔧 Initializing Unified Brick System...');
-    
     // Calculate platform info
     this.calculatePlatformInfo();
     
     // Note: Carried brick and ghost brick will be created after master brick is loaded
-    console.log('⏳ Waiting for master brick to be loaded before creating carried/ghost bricks');
-    
-    console.log('✅ Unified Brick System initialized');
-    console.log('📍 Platform top:', this.platformTop);
-    console.log('📍 Grid origin:', this.gridOrigin);
-    console.log('📏 Cell size:', this.CELL_SIZE);
-    console.log('📏 Brick height:', this.BRICK_HEIGHT);
   }
 
   // Method to initialize bricks after master brick is loaded
   public initializeAfterMasterBrick(): void {
-    console.log('🧱 Initializing carried and ghost bricks after master brick loaded...');
-    
     if (!this.sceneObjects.masterBrick) {
       console.error('❌ Master brick still not available!');
       return;
@@ -88,22 +77,15 @@ export class UnifiedBrickSystem {
     
     // Create ghost brick
     this.createGhostBrick();
-    
-    console.log('✅ Carried and ghost bricks initialized');
   }
 
   // Method to recalculate platform info after platform is loaded
   public recalculatePlatformInfo(): void {
-    console.log('🏗️ Recalculating platform info after platform loaded...');
     this.calculatePlatformInfo();
-    console.log('✅ Platform info recalculated');
-    console.log('📍 Updated platform top:', this.platformTop);
-    console.log('📍 Updated grid origin:', this.gridOrigin);
   }
 
   private calculatePlatformInfo(): void {
     if (!this.sceneObjects.buildingPlatform) {
-      console.warn('⚠️ No building platform found');
       return;
     }
 
@@ -121,21 +103,11 @@ export class UnifiedBrickSystem {
   }
 
   private createCarriedBrick(): void {
-    console.log('🔧 Creating carried brick...');
     const geometry = new THREE.BoxGeometry(this.CELL_SIZE, this.BRICK_HEIGHT, this.CELL_SIZE);
     const material = new THREE.MeshStandardMaterial({ color: 0xffffff });
     this.carriedBrick = new THREE.Mesh(geometry, material);
     this.carriedBrick.visible = false; // Initially hidden
     this.scene.add(this.carriedBrick);
-    console.log('✅ Carried brick created and added to scene');
-  }
-
-  private createBrickMesh(position: THREE.Vector3, color: number): THREE.Mesh {
-    const geometry = new THREE.BoxGeometry(this.CELL_SIZE, this.BRICK_HEIGHT, this.CELL_SIZE);
-    const material = new THREE.MeshStandardMaterial({ color });
-    const brick = new THREE.Mesh(geometry, material);
-    brick.position.copy(position);
-    return brick;
   }
 
   // Create an optimized brick mesh for performance
@@ -168,7 +140,6 @@ export class UnifiedBrickSystem {
   }
 
   private createGhostBrick(): void {
-    console.log('🔧 Creating ghost brick...');
     const geometry = new THREE.BoxGeometry(this.CELL_SIZE, this.BRICK_HEIGHT, this.CELL_SIZE);
     const material = new THREE.MeshStandardMaterial({
         color: 0x00ff00,
@@ -179,7 +150,6 @@ export class UnifiedBrickSystem {
     this.ghostBrick.visible = false;
     this.scene.add(this.ghostBrick);
     this.sceneObjects.ghostBrick = this.ghostBrick as THREE.Mesh;
-    console.log('✅ Ghost brick created and added to scene');
   }
 
   // Convert world position to grid coordinates
@@ -224,68 +194,89 @@ export class UnifiedBrickSystem {
 
   // Method to place a remote brick (from multiplayer)
   public placeRemoteBrick(gridPos: BrickPosition, color: number): THREE.Mesh | null {
-    console.log('🌐 UnifiedBrickSystem.placeRemoteBrick called with:', {
-      gridPos,
-      color: `#${color.toString(16).padStart(6, '0')}`
-    });
+    console.log('🧱 UnifiedBrickSystem.placeRemoteBrick called with:', { gridPos, color: `#${color.toString(16).padStart(6, '0')}` });
     
     // Skip validation for remote bricks - trust the server
     const worldPos = this.gridToWorld(gridPos);
-    console.log('🌍 Calculated world position:', worldPos);
+    console.log('🌍 World position calculated:', worldPos);
     
-    // Use optimized brick creation for remote bricks
-    const brick = this.createOptimizedBrickMesh(worldPos, color);
-    console.log('🧱 Created brick mesh:', {
-      position: brick.position,
-      visible: brick.visible,
-      geometry: !!brick.geometry,
-      material: !!brick.material
-    });
+    // Create a unique brick mesh for remote bricks (don't use cached materials)
+    if (!this.sharedBrickGeometry) {
+      this.sharedBrickGeometry = new THREE.BoxGeometry(this.CELL_SIZE, this.BRICK_HEIGHT, this.CELL_SIZE);
+    }
+
+    // Create a NEW material specifically for this remote brick (no caching to avoid conflicts)
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const material = isMobile
+      ? new THREE.MeshBasicMaterial({ 
+          color: color,
+          transparent: false,
+          opacity: 1.0,
+          visible: true
+        })
+      : new THREE.MeshStandardMaterial({ 
+          color: color,
+          transparent: false,
+          opacity: 1.0,
+          visible: true
+        });
+
+    const brick = new THREE.Mesh(this.sharedBrickGeometry, material);
+    brick.position.copy(worldPos);
+
+    // Disable shadows for brighter scene
+    brick.castShadow = false;
+    brick.receiveShadow = false;
     
-    // Mark as network brick
+    // Mark as network brick with comprehensive metadata
     brick.userData.isBrick = true;
     brick.userData.isNetworkBrick = true;
     brick.userData.gridPosition = gridPos;
+    brick.userData.color = color;
+    brick.userData.timestamp = Date.now();
     brick.visible = true;
     
     // Ensure the brick has a unique name for debugging
-    brick.name = `network-brick-${gridPos.x}-${gridPos.z}-${gridPos.layer}`;
+    brick.name = `network-brick-${gridPos.x}-${gridPos.z}-${gridPos.layer}-${Date.now()}`;
     
-    // Add to scene and tracking
+    // Force proper rendering settings
+    brick.frustumCulled = false; // Prevent culling issues
+    brick.matrixAutoUpdate = true;
+    
+    console.log('🔨 Created remote brick mesh:', {
+      name: brick.name,
+      position: brick.position,
+      visible: brick.visible,
+      userData: brick.userData,
+      materialColor: `#${color.toString(16).padStart(6, '0')}`,
+      materialVisible: material.visible,
+      materialOpacity: material.opacity
+    });
+    
+    // Add to scene and tracking arrays
     this.scene.add(brick);
     this.placedBricks.push(brick);
     this.sceneObjects.placedBricks.push(brick);
     this.sceneObjects.solidObjects.push(brick);
     this.sceneObjects.groundObjects.push(brick);
     
-    console.log('📊 Updated tracking arrays:', {
-      placedBricksCount: this.placedBricks.length,
-      sceneObjectsPlacedBricksCount: this.sceneObjects.placedBricks.length,
-      solidObjectsCount: this.sceneObjects.solidObjects.length,
-      groundObjectsCount: this.sceneObjects.groundObjects.length,
-      brickInScene: this.scene.children.includes(brick)
-    });
-    
     // Mark position as occupied
     const key = `${gridPos.x},${gridPos.z},${gridPos.layer}`;
     this.occupiedPositions.add(key);
-    console.log('🔒 Position marked as occupied:', key);
     
-    // Debug: Log remote brick placement and current layer progress
-    const currentLayer = this.getCurrentActiveLayer();
-    const progress = this.getLayerProgress(currentLayer);
-    console.log(`🔍 Remote brick placed at ${JSON.stringify(gridPos)}, Layer ${currentLayer + 1} progress: ${progress.filled}/${progress.total} (${progress.percentage.toFixed(1)}%)`);
+    // Force matrix updates
+    brick.updateMatrix();
+    brick.updateMatrixWorld(true);
     
     // Check layer completion for remote bricks too
     this.checkLayerCompletion();
     
-    // Final verification
-    console.log('✅ Remote brick placement complete:', {
-      brickName: brick.name,
-      position: brick.position,
-      visible: brick.visible,
-      inScene: this.scene.children.includes(brick),
-      userData: brick.userData
+    console.log('✅ Remote brick successfully added to scene and tracking arrays');
+    console.log('📊 Current brick counts:', {
+      placedBricks: this.placedBricks.length,
+      sceneObjectsBricks: this.sceneObjects.placedBricks.length,
+      occupiedPositions: this.occupiedPositions.size,
+      sceneChildren: this.scene.children.length
     });
     
     return brick;
@@ -348,11 +339,9 @@ export class UnifiedBrickSystem {
       this.completedLayers[this.currentLayer] = true;
       if (this.currentLayer < this.MAX_LAYERS - 1) {
         this.currentLayer++;
-        console.log(`Layer ${this.currentLayer - 1} complete! Moving to layer ${this.currentLayer}.`);
         this.createStaircase(this.currentLayer -1);
         // Here you could trigger UI updates or other game events
       } else {
-        console.log('All layers complete! Structure finished!');
         // Final completion event
       }
     }
@@ -401,13 +390,10 @@ export class UnifiedBrickSystem {
         this.sceneObjects.solidObjects.push(connectingBrick);
         this.sceneObjects.groundObjects.push(connectingBrick);
         
-        // Mark the connecting position as occupied
         const connectingKey = `${connectingX},${connectingZ},${layer}`;
         this.occupiedPositions.add(connectingKey);
       }
     }
-    
-    console.log(`Staircase created extending from platform side up to layer ${forLayer}`);
   }
 
   // Pick up a brick
@@ -423,19 +409,20 @@ export class UnifiedBrickSystem {
         material.visible = true;
         this.carriedBrick.visible = true;
         this.sceneObjects.carriedBrick = this.carriedBrick as any;
-        console.log('✅ Carried brick is now visible with color:', `#${color.toString(16).padStart(6, '0')}`);
     }
 
     // Play pickup animation
     this.animationSystem.playPickupAnimation();
-    console.log('🎬 Playing pickup animation');
 
     return true;
   }
 
   // Place a brick
   public placeBrick(): boolean {
+    console.log('🧱 UnifiedBrickSystem.placeBrick called!');
+    
     if (!this.gameState.isCarryingBrick || !this.ghostBrick) {
+      console.log('❌ Cannot place brick: isCarryingBrick =', this.gameState.isCarryingBrick, 'ghostBrick =', !!this.ghostBrick);
       return false;
     }
 
@@ -446,8 +433,11 @@ export class UnifiedBrickSystem {
     // Also check if ghost brick is visible (which implies it's in a valid general area)
     // and if the position is valid for placement.
     if (!gridPos || !this.canPlaceBrick(gridPos) || !this.ghostBrick.visible) {
+      console.log('❌ Cannot place brick: gridPos =', gridPos, 'canPlace =', gridPos ? this.canPlaceBrick(gridPos) : false, 'ghostVisible =', this.ghostBrick.visible);
       return false;
     }
+
+    console.log('✅ Placing brick at grid position:', gridPos);
 
     // Create the brick with performance optimization
     const exactWorldPos = this.gridToWorld(gridPos);
@@ -492,33 +482,18 @@ export class UnifiedBrickSystem {
       gridPosition: gridPos
     };
     
-    if (this.multiplayerSystem && this.multiplayerSystem.isMultiplayerEnabled()) {
-      try {
-        this.multiplayerSystem.sendBrickPlaced(brickData);
-        console.log('📤 Brick placement sent to multiplayer system');
-      } catch (error) {
-        console.error('❌ Failed to send brick placement to multiplayer system:', error);
-      }
+    // Send to multiplayer if connected
+    if (this.multiplayerSystem.isMultiplayerEnabled()) {
+      console.log('📤 Sending brick placement to multiplayer system');
+      this.multiplayerSystem.sendBrickPlaced(brickData);
     } else {
-      console.warn('⚠️ Multiplayer system not available or not enabled, skipping brick sync');
+      console.log('⚠️ Multiplayer not connected, skipping network send');
     }
     
     this.checkLayerCompletion();
 
     // Play place animation
     this.animationSystem.playPlaceAnimation();
-    console.log('🎬 Playing place animation');
-
-    console.log(`Brick placed at ${JSON.stringify(gridPos)}`);
-    
-    // Final visibility check
-    const isBrickInScene = this.scene.children.includes(brick);
-    console.log(`🔍 Final check: Brick in scene: ${isBrickInScene}, Visible: ${brick.visible}`);
-    brick.traverse((child) => {
-      if ((child as THREE.Mesh).isMesh) {
-        console.log(`  - Child mesh visible: ${(child as THREE.Mesh).visible}, Material opacity: ${((child as THREE.Mesh).material as THREE.MeshStandardMaterial).opacity}`);
-      }
-    });
 
     return true;
   }
@@ -640,6 +615,42 @@ export class UnifiedBrickSystem {
     }
   }
 
+  public clearRemoteBricks(): void {
+    console.log('🧹 Clearing remote bricks before sync...');
+    
+    // Filter out only remote bricks from placed bricks
+    const remoteBricks = this.placedBricks.filter(brick => brick.userData.isNetworkBrick);
+    const localBricks = this.placedBricks.filter(brick => !brick.userData.isNetworkBrick);
+    
+    console.log(`🧹 Found ${remoteBricks.length} remote bricks and ${localBricks.length} local bricks`);
+    
+    // Remove remote bricks from scene
+    remoteBricks.forEach(brick => {
+      this.scene.remove(brick);
+      
+      // Remove from occupied positions
+      const gridPos = brick.userData.gridPosition;
+      if (gridPos) {
+        const key = `${gridPos.x},${gridPos.z},${gridPos.layer}`;
+        this.occupiedPositions.delete(key);
+      }
+    });
+    
+    // Update placed bricks array to only contain local bricks
+    this.placedBricks = localBricks;
+    
+    // Clean up scene objects - only remove remote bricks
+    this.sceneObjects.placedBricks = this.sceneObjects.placedBricks.filter(brick => !brick.userData.isNetworkBrick);
+    this.sceneObjects.solidObjects = this.sceneObjects.solidObjects.filter(obj => 
+      !obj.userData.isBrick || !obj.userData.isNetworkBrick
+    );
+    this.sceneObjects.groundObjects = this.sceneObjects.groundObjects.filter(obj => 
+      !obj.userData.isBrick || !obj.userData.isNetworkBrick
+    );
+    
+    console.log(`✅ Cleared ${remoteBricks.length} remote bricks, kept ${localBricks.length} local bricks`);
+  }
+
   // Get layer progress for the UI
   public getLayerProgress(layer: number): { filled: number, total: number, percentage: number } {
     if (layer < 0 || layer >= this.MAX_LAYERS) {
@@ -665,8 +676,6 @@ export class UnifiedBrickSystem {
     };
   }
 
-
-
   // Get current active layer
   public getCurrentActiveLayer(): number {
     for (let layer = 0; layer < this.MAX_LAYERS; layer++) {
@@ -680,76 +689,10 @@ export class UnifiedBrickSystem {
 
   // Debug method
   public debugBrickVisibility(): void {
-    console.log('🔍 Brick Visibility Debug:');
-    console.log('  Master brick exists:', !!this.sceneObjects.masterBrick);
-    console.log('  Carried brick exists:', !!this.carriedBrick);
-    console.log('  Carried brick visible:', this.carriedBrick?.visible);
-    console.log('  Ghost brick exists:', !!this.ghostBrick);
-    console.log('  Ghost brick visible:', this.ghostBrick?.visible);
-    console.log('  Placed bricks count:', this.placedBricks.length);
-    
-    if (this.carriedBrick) {
-      console.log('  Carried brick position:', this.carriedBrick.position);
-      console.log('  Carried brick scale:', this.carriedBrick.scale);
-      this.carriedBrick.traverse((child) => {
-        if ((child as THREE.Mesh).isMesh) {
-          const mesh = child as THREE.Mesh;
-          console.log(`    Child - visible: ${mesh.visible}, material:`, mesh.material);
-        }
-      });
-    }
-    
-    this.placedBricks.forEach((brick, index) => {
-      console.log(`  Placed brick ${index} - visible: ${brick.visible}, position:`, brick.position);
-    });
-  }
-
-  // Debug platform and grid setup
+    // Debug method - logging removed for performance
+  }  // Debug platform and grid setup
   public debugPlatformSetup(): void {
-    console.log('🏗️ Platform & Grid Debug:');
-    console.log('  Building platform exists:', !!this.sceneObjects.buildingPlatform);
-    console.log('  Platform top Y:', this.platformTop);
-    console.log('  Platform center:', this.platformCenter);
-    console.log('  Grid origin:', this.gridOrigin);
-    console.log('  Grid size:', this.GRID_SIZE);
-    console.log('  Cell size:', this.CELL_SIZE);
-    console.log('  Brick height:', this.BRICK_HEIGHT);
-    
-    if (this.sceneObjects.buildingPlatform) {
-      const platformBox = new THREE.Box3().setFromObject(this.sceneObjects.buildingPlatform);
-      console.log('  Platform bounds:', {
-        min: platformBox.min,
-        max: platformBox.max,
-        size: platformBox.getSize(new THREE.Vector3())
-      });
-      
-      // Calculate expected grid coverage
-      const gridWorldSize = this.GRID_SIZE * this.CELL_SIZE;
-      console.log('  Grid world size:', gridWorldSize);
-      console.log('  Platform size:', platformBox.getSize(new THREE.Vector3()));
-      console.log('  Grid coverage ratio:', {
-        x: gridWorldSize / platformBox.getSize(new THREE.Vector3()).x,
-        z: gridWorldSize / platformBox.getSize(new THREE.Vector3()).z
-      });
-    }
-    
-    if (this.sceneObjects.character) {
-      console.log('  Character position:', this.sceneObjects.character.position);
-      const characterPlatformPos = this.sceneObjects.character.position.clone();
-      characterPlatformPos.y = this.platformTop;
-      const gridPos = this.worldToGrid(characterPlatformPos);
-      console.log('  Character grid position (at platform level):', gridPos);
-      
-      // Test distance calculation
-      const distanceFromCenter = Math.sqrt(
-        Math.pow(this.sceneObjects.character.position.x - this.platformCenter.x, 2) + 
-        Math.pow(this.sceneObjects.character.position.z - this.platformCenter.z, 2)
-      );
-      const maxDistance = (this.GRID_SIZE * this.CELL_SIZE) / 2 + 2;
-      console.log('  Distance from platform center:', distanceFromCenter.toFixed(2));
-      console.log('  Max allowed distance:', maxDistance.toFixed(2));
-      console.log('  Within range:', distanceFromCenter <= maxDistance);
-    }
+    // Debug method - logging removed for performance
   }
 
   // Performance monitoring and optimization
@@ -772,10 +715,8 @@ export class UnifiedBrickSystem {
        if (fps < 30 && !this.performanceMode) {
          this.performanceMode = true;
          this.enablePerformanceMode();
-         console.log('🚀 Performance mode enabled due to low FPS:', fps.toFixed(1));
        } else if (fps > 45 && this.performanceMode) {
          this.performanceMode = false;
-         console.log('✅ Performance mode disabled, FPS improved:', fps.toFixed(1));
        }
        
        this.lastPerformanceCheck = now;
@@ -810,7 +751,6 @@ export class UnifiedBrickSystem {
   public getPlacedBricksCount(): number { return this.placedBricks.length; }
 
   public debugFillCurrentLayer(): void {
-    console.log(`[DEBUG] Filling layer ${this.currentLayer}...`);
     for (let x = 0; x < this.GRID_SIZE; x++) {
       for (let z = 0; z < this.GRID_SIZE; z++) {
         const gridPos = { x, z, layer: this.currentLayer };
@@ -839,51 +779,19 @@ export class UnifiedBrickSystem {
       }
     }
     this.checkLayerCompletion();
-    console.log(`[DEBUG] Layer ${this.currentLayer -1} filled.`);
   }
 
   public debugNextLayer(): void {
     if (this.currentLayer < this.MAX_LAYERS - 1) {
       this.currentLayer++;
-      console.log(`[DEBUG] Manually advanced to layer ${this.currentLayer}.`);
-    } else {
-      console.log(`[DEBUG] Already at the max layer.`);
     }
   }
 
   public debugLayerProgress(): void {
-    const currentLayer = this.getCurrentActiveLayer();
-    const progress = this.getLayerProgress(currentLayer);
-    console.log(`📊 Layer ${currentLayer + 1} progress: ${progress.filled}/${progress.total} bricks (${progress.percentage.toFixed(1)}%)`);
-    console.log(`📊 Total occupied positions: ${this.occupiedPositions.size}`);
-    
-    // Count positions by layer
-    const layerCounts: { [key: number]: number } = {};
-    const layerPositions: { [key: number]: string[] } = {};
-    
-    for (const key of this.occupiedPositions) {
-      const parts = key.split(',');
-      const layer = parseInt(parts[2]);
-      layerCounts[layer] = (layerCounts[layer] || 0) + 1;
-      if (!layerPositions[layer]) layerPositions[layer] = [];
-      layerPositions[layer].push(key);
-    }
-    
-    console.log('📊 Brick counts by layer:', layerCounts);
-    console.log('📊 Current active layer:', currentLayer + 1);
-    console.log('📊 All occupied positions:', Array.from(this.occupiedPositions));
-    
-    // Show sample of positions for layer 0
-    if (layerPositions[0]) {
-      console.log('📊 Layer 1 positions (first 10):', layerPositions[0].slice(0, 10));
-    }
-    
-    // Check if LayerProgressUI is working
-    console.log('📊 LayerProgressUI should be updating every 500ms');
+    // Debug method - logging removed for performance
   }
 
   public debugClearBricks(): void {
-    console.log('[DEBUG] Clearing all bricks...');
     this.placedBricks.forEach(brick => this.scene.remove(brick));
     this.placedBricks = [];
     this.sceneObjects.placedBricks = [];
@@ -895,6 +803,5 @@ export class UnifiedBrickSystem {
     this.completedLayers.fill(false);
     // Clear stairs if they exist
     // This requires stairs to be identifiable, e.g., by adding userData
-    console.log('[DEBUG] All bricks cleared.');
   }
 }

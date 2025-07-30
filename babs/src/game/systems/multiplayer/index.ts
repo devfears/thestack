@@ -6,4 +6,3 @@ export { MultiplayerDebugTools } from './MultiplayerDebugTools';
 export { MultiplayerAnimationSystem } from './MultiplayerAnimationSystem';
 
 // Re-export the main system
-export { MultiplayerSystem } from '../MultiplayerSystemNew';

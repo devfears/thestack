@@ -9,7 +9,7 @@ import { WaterSystemManager } from '../scene/WaterSystem';
 import { ModelLoaderManager } from '../scene/ModelLoader';
 import { UnifiedBrickSystem } from '../building/UnifiedBrickSystem';
 import { SimpleInteractionSystem } from '../scene/SimpleInteractionSystem';
-import { MultiplayerSystem } from '../systems/MultiplayerSystemNew';
+import { SimpleMultiplayerSystem } from '../systems/multiplayer/SimpleMultiplayerSystem';
 import { UIManager } from '../ui/UIManager';
 import { LayerProgressUI } from '../ui/LayerProgressUI';
 
@@ -20,8 +20,6 @@ import { BuildingManager } from './BuildingManager';
 import { DebugManager } from './DebugManager';
 import { StateManager } from './StateManager';
 
-
-
 export class GameManager {
   // Core systems
   private sceneSystem: SceneSystemManager;
@@ -31,7 +29,7 @@ export class GameManager {
   private waterSystem: WaterSystemManager;
   private modelLoader: ModelLoaderManager;
   private brickSystem: UnifiedBrickSystem;
-  private multiplayerSystem: MultiplayerSystem;
+  private multiplayerSystem: SimpleMultiplayerSystem;
   private uiManager: UIManager;
   private layerProgressUI: LayerProgressUI | null = null;
 
@@ -126,8 +124,8 @@ export class GameManager {
     this.sceneObjects.camera = this.sceneSystem.camera;
     this.scene = this.sceneSystem.scene;
     this.clock = new THREE.Clock();
-    // Initialize multiplayer system
-    this.multiplayerSystem = new MultiplayerSystem(this, this.sceneSystem.scene);
+    // Initialize simplified multiplayer system
+    this.multiplayerSystem = new SimpleMultiplayerSystem(this, this.sceneSystem.scene);
 
     this.brickSystem = new UnifiedBrickSystem(this.sceneSystem.scene, this.sceneObjects, this.gameState, this.multiplayerSystem, this.animationSystem);
     this.modelLoader = new ModelLoaderManager(
@@ -155,7 +153,7 @@ export class GameManager {
     // Initialize UI manager
     this.uiManager = new UIManager(mountElement);
     this.multiplayerSystem.setOnPlayerCountChange((count) => {
-      console.log(`🎮 GameManager: Player count changed to ${count}`);
+      
       this.onRemotePlayerCountChange?.(count);
       // Also update the LayerProgressUI if it exists
       if (this.layerProgressUI) {
@@ -163,8 +161,7 @@ export class GameManager {
       }
     });
 
-    // Clear any existing network bricks from previous sessions
-    this.multiplayerSystem.clearAllNetworkBricks();
+    // Note: Simplified multiplayer system handles cleanup automatically
 
     // Expose global clear function for testing
     this.exposeGlobalClearFunction();
@@ -173,8 +170,6 @@ export class GameManager {
     (window as any).debugFillCurrentLayer = () => this.brickSystem.debugFillCurrentLayer();
     (window as any).debugNextLayer = () => this.brickSystem.debugNextLayer();
     (window as any).debugClearBricks = () => this.brickSystem.debugClearBricks();
-
-
 
     // Store water reference
     this.sceneObjects.water = this.waterSystem.getMesh();
@@ -200,8 +195,7 @@ export class GameManager {
   public setNametagVisible(visible: boolean): void {
     // Local player nametag
     this.modelLoader.setNametagVisible(visible);
-    // Remote player nametags
-    this.multiplayerSystem.setNametagVisible(visible);
+    // Note: Remote player nametags are handled by SimpleMultiplayerSystem
   }
 
   public setLocalNametagVisible(visible: boolean): void {
@@ -253,13 +247,11 @@ export class GameManager {
 
       // Initialize building system after master brick is loaded
       if (this.sceneObjects.masterBrick) {
-        console.log('🧱 Initializing building system with master brick');
+        
         this.brickSystem.initializeAfterMasterBrick();
-        console.log('✅ Unified brick system ready with master brick');
-
-        console.log('✅ Building system initialized successfully');
+        
       } else {
-        console.warn('⚠️ Master brick not available for building system initialization');
+        
       }
 
       // Load the rest of the models
@@ -272,20 +264,25 @@ export class GameManager {
       
       await this.modelLoader.loadIsland();
 
-      // Connect to multiplayer if user is provided
-      // The MultiplayerSystem has safeguards to prevent duplicate player creation
+      // Wait a moment to ensure character is fully loaded and accessible
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Connect to multiplayer if user is provided (after character is loaded)
       if (this.user) {
         try {
-          console.log('🔌 Attempting to connect to multiplayer with user:', this.user);
+          console.log('🔌 Attempting multiplayer connection...');
           const connected = await this.multiplayerSystem.connect(this.user);
-          console.log('🎮 Multiplayer connection result:', connected);
-          console.log('🔗 Multiplayer enabled after connection:', this.multiplayerSystem.isMultiplayerEnabled());
+          if (connected) {
+            console.log('✅ Multiplayer connected successfully');
+          } else {
+            console.log('⚠️ Multiplayer connection failed, continuing in single-player mode');
+          }
         } catch (error) {
-          console.warn('⚠️ Failed to connect to multiplayer:', error);
+          console.error('❌ Multiplayer connection error:', error);
           // Continue with single-player mode if multiplayer fails
         }
       } else {
-        console.log('❌ No user provided, skipping multiplayer connection');
+        console.log('ℹ️ No user provided, running in single-player mode');
       }
 
       // Expose debug functions globally
@@ -299,7 +296,6 @@ export class GameManager {
 
       this.isInitialized = true;
 
-      console.log('✅ Game initialized successfully with new architecture');
     } catch (error) {
       console.error('❌ Failed to initialize game:', error);
     }
@@ -352,9 +348,16 @@ export class GameManager {
     this.buildingManager.update();
     this.multiplayerManager.update(deltaTime);
     
+    // Update simplified multiplayer system
+    this.multiplayerSystem.update(deltaTime);
+    
     // Send player updates if multiplayer is connected
-    if (this.sceneObjects.character) {
-      this.multiplayerManager.sendPlayerUpdateIfChanged(this.sceneObjects.character, this.gameState);
+    if (this.sceneObjects.character && this.multiplayerSystem.isMultiplayerEnabled()) {
+      this.multiplayerSystem.sendPlayerUpdate({
+        position: this.sceneObjects.character.position,
+        rotation: this.sceneObjects.character.rotation,
+        isCarryingBrick: this.gameState.isCarryingBrick
+      });
     }
 
     // Update water animation
@@ -372,8 +375,6 @@ export class GameManager {
     // Render the scene
     this.sceneSystem.render();
   }
-
-
 
   // Public methods for external control
   public toggleCameraFollow(): void {
@@ -434,7 +435,7 @@ export class GameManager {
     return this.brickSystem;
   }
 
-  public getMultiplayerSystem(): MultiplayerSystem {
+  public getMultiplayerSystem(): SimpleMultiplayerSystem {
     return this.multiplayerSystem;
   }
 
@@ -481,15 +482,13 @@ export class GameManager {
     };
   }
 
-
-
   // Testing utilities
   public testGridAlignment(): void {
-    console.log('🔧 Grid alignment test - unified system handles this automatically');
+    
   }
 
   public testSimpleAlignment(): void {
-    console.log('🔧 Simple alignment test - unified system handles this automatically');
+    
   }
 
   // Expose clear function to global scope for easy testing
@@ -499,17 +498,14 @@ export class GameManager {
     };
 
     (window as any).hardReset = () => {
-      console.log('🔥 HARD RESET: Clearing everything and resetting grid...');
-
+      
       // Clear all bricks (local and network)
       this.clearAllBricks();
 
       // Force reset the grid system - unified system handles this
-      console.log('🔄 Grid system reset handled by unified system');
-
+      
       // Reset layer manager to layer 0 - unified system handles this
-      console.log('🔄 Layer manager reset handled by unified system');
-
+      
       // Reset game state
       this.gameState.isCarryingBrick = false;
 
@@ -520,50 +516,31 @@ export class GameManager {
       }
 
       // Additional cleanup for simplified system
-      console.log('🧹 Additional cleanup completed');
-
-      console.log('✅ Hard reset complete - everything cleared and reset to initial state');
+      
     };
 
     (window as any).fillAllLayers = (maxLayers = 4) => {
-      console.log(`🏗️ FILL ALL LAYERS: Spawning bricks on all positions for ${maxLayers} layers...`);
-      console.log('⚠️ fillAllLayers temporarily disabled - UnifiedBrickSystem uses different architecture');
+      
       return 0;
     };
 
     (window as any).fillLayer = (layerNumber = 0) => {
-      console.log(`🔨 FILL LAYER ${layerNumber}: Spawning bricks on all positions...`);
-      console.log('⚠️ fillLayer temporarily disabled - UnifiedBrickSystem uses different architecture');
+      
       return 0;
     };
 
     (window as any).giveBrick = () => {
       const success = this.brickSystem.pickupBrick();
-      console.log('🧱 giveBrick() result:', success);
+      
       return success;
     };
 
     (window as any).debugBrickState = () => {
-      console.log('🔍 Current brick state:', {
-        isCarryingBrick: this.gameState.isCarryingBrick,
-        hasMasterBrick: !!this.sceneObjects.masterBrick,
-        hasGhostBrick: !!this.sceneObjects.ghostBrick,
-        ghostBrickVisible: this.sceneObjects.ghostBrick?.visible,
-        brickCount: this.brickSystem.getPlacedBricksCount(),
-        gridSize: this.brickSystem.getGridSize(),
-        cellSize: this.brickSystem.getCellSize(),
-        maxLayers: this.brickSystem.getMaxLayers(),
-        gridOrigin: this.brickSystem.getGridOrigin(),
-        solidObjectsCount: this.sceneObjects.solidObjects.length,
-        groundObjectsCount: this.sceneObjects.groundObjects.length
-      });
 
       // Check if character is near brick pile
       if (this.sceneObjects.character && this.sceneObjects.brickPile) {
         const distance = this.sceneObjects.character.position.distanceTo(this.sceneObjects.brickPile.position);
-        console.log('📏 Distance to brick pile:', distance.toFixed(2));
-        console.log('📍 Character position:', this.sceneObjects.character.position);
-        console.log('📍 Brick pile position:', this.sceneObjects.brickPile.position);
+        
       }
       
       // Debug platform setup
@@ -574,40 +551,37 @@ export class GameManager {
     };
 
     (window as any).debugGrid = () => {
-      console.log('🔲 Grid debug - unified system');
+      
     };
 
     (window as any).showGrid = () => {
-      console.log('🔲 Grid visualization - unified system');
+      
     };
 
     (window as any).toggleGrid = () => {
-      console.log('🔲 Grid toggle - unified system');
+      
     };
 
     (window as any).testBrickPlacement = () => {
-      console.log('🧪 Testing brick placement...');
+      
       if (this.gameState.isCarryingBrick) {
-        console.log('✅ Already carrying a brick - try placing it');
+        
       } else {
-        console.log('🎯 Picking up a brick for testing...');
+        
         this.brickSystem.pickupBrick();
       }
     };
 
     (window as any).testCentering = () => {
-      console.log('🎯 Testing grid centering with corner bricks...');
-
+      
       // Clear first
       this.clearAllBricks();
 
-      console.log('⚠️ Spawn test bricks temporarily disabled - UnifiedBrickSystem uses different architecture');
       return;
     };
 
     (window as any).fixFloatingBricks = () => {
-      console.log('🔧 Fixing all floating bricks...');
-
+      
       if (!this.sceneObjects.buildingPlatform) {
         console.error('❌ No building platform found');
         return;
@@ -629,14 +603,6 @@ export class GameManager {
         const gridPos = brick.userData.gridPosition;
         const layer = gridPos ? gridPos.layer : 0;
 
-        console.log(`🔍 Brick ${index} analysis:`);
-        console.log(`  - Current position: Y=${brick.position.y}`);
-        console.log(`  - Brick bottom: Y=${actualBrickBottom}`);
-        console.log(`  - Platform top: Y=${platformTop}`);
-        console.log(`  - Gap: ${gap}`);
-        console.log(`  - Layer: ${layer}`);
-        console.log(`  - Brick height: ${actualBrickHeight}`);
-
         if (Math.abs(gap) > 0.01) {
           // Calculate correct Y position for this layer
           const correctY = platformTop + (layer * actualBrickHeight) + (actualBrickHeight / 2);
@@ -644,25 +610,20 @@ export class GameManager {
           brick.position.y = correctY;
           fixedCount++;
 
-          console.log(`🔧 Fixed brick ${index}: layer ${layer}, moved from Y=${oldY} to Y=${correctY}`);
         } else {
-          console.log(`✅ Brick ${index} is correctly positioned`);
+          
         }
       });
 
-      console.log(`✅ Fixed ${fixedCount} floating bricks`);
     };
 
     (window as any).debugGridSystem = () => {
-      console.log('🔍 Grid System Debug Info:');
-
-      console.log('⚠️ Grid system debug temporarily disabled - UnifiedBrickSystem uses different architecture');
+      
       return;
     };
 
     (window as any).verifyPlatform = () => {
-      console.log('🔍 Platform Verification:');
-
+      
       if (!this.sceneObjects.buildingPlatform) {
         console.error('❌ No building platform found');
         return;
@@ -673,83 +634,54 @@ export class GameManager {
       const platformCenter = platformBox.getCenter(new THREE.Vector3());
       const platformSize = platformBox.getSize(new THREE.Vector3());
 
-      console.log('🏗️ Platform Details:');
-      console.log('  - Name:', platform.name);
-      console.log('  - Position:', platform.position);
-      console.log('  - Bounds Min:', platformBox.min);
-      console.log('  - Bounds Max:', platformBox.max);
-      console.log('  - Center:', platformCenter);
-      console.log('  - Size:', platformSize);
-      console.log('  - Top Y:', platformBox.max.y);
-
       // Test grid system alignment
-      console.log('⚠️ Grid system alignment test temporarily disabled - UnifiedBrickSystem uses different architecture');
+      
     };
 
     (window as any).testSingleBrick = () => {
-      console.log('🧱 Testing single brick placement with detailed logging...');
-
+      
       // Clear first
       this.clearAllBricks();
 
-      console.log('⚠️ Spawn test bricks temporarily disabled - UnifiedBrickSystem uses different architecture');
       return;
     };
 
     (window as any).debugPosition = () => {
-      console.log('🔍 Position debug:');
+      
       if (this.sceneObjects.character) {
-        console.log('  Character position:', this.sceneObjects.character.position);
+        
       }
       if (this.sceneObjects.buildingPlatform) {
         const bounds = new THREE.Box3().setFromObject(this.sceneObjects.buildingPlatform);
         const center = bounds.getCenter(new THREE.Vector3());
         const size = bounds.getSize(new THREE.Vector3());
-        console.log('  Platform bounds:', bounds);
-        console.log('  Platform center:', center);
-        console.log('  Platform size:', size);
-        console.log('  Platform top Y:', bounds.max.y);
-
+        
         // Check platform object properties
-        console.log('  Platform object:', {
-          position: this.sceneObjects.buildingPlatform.position,
-          scale: this.sceneObjects.buildingPlatform.scale,
-          rotation: this.sceneObjects.buildingPlatform.rotation,
-          visible: this.sceneObjects.buildingPlatform.visible
-        });
       }
-      console.log('⚠️ Grid system debug temporarily disabled - UnifiedBrickSystem uses different architecture');
+      
     };
 
     (window as any).debugMasterBrick = () => {
-      console.log('🧱 Master brick debug:');
+      
       const masterBrick = this.sceneObjects.masterBrick;
       if (masterBrick) {
-        console.log('  Master brick exists:', !!masterBrick);
-        console.log('  Master brick visible:', masterBrick.visible);
-        console.log('  Master brick position:', masterBrick.position);
-        console.log('  Master brick scale:', masterBrick.scale);
-        console.log('  Master brick children:', masterBrick.children.length);
+        
         masterBrick.traverse((child) => {
           if (child instanceof THREE.Mesh) {
-            console.log('    Mesh child:', child.name, 'visible:', child.visible, 'geometry:', !!child.geometry, 'material:', !!child.material);
+            
           }
         });
       } else {
-        console.log('  Master brick not found!');
+        
       }
     };
 
     (window as any).debugBrickPositioning = () => {
-      console.log('📐 Brick positioning debug:');
+      
       if (this.sceneObjects.buildingPlatform) {
         const bounds = new THREE.Box3().setFromObject(this.sceneObjects.buildingPlatform);
         const center = bounds.getCenter(new THREE.Vector3());
-        console.log('  Platform bounds:', bounds);
-        console.log('  Platform center:', center);
-        console.log('  Platform top Y:', bounds.max.y);
-
-        console.log('⚠️ Platform debug temporarily disabled - UnifiedBrickSystem uses different architecture');
+        
         return;
       }
     };
@@ -763,21 +695,17 @@ export class GameManager {
     };
 
     (window as any).debugMasterBrick = () => {
-      console.log('🧱 Master brick debug:');
+      
       const masterBrick = this.sceneObjects.masterBrick;
       if (masterBrick) {
-        console.log('  Master brick exists:', !!masterBrick);
-        console.log('  Master brick visible:', masterBrick.visible);
-        console.log('  Master brick position:', masterBrick.position);
-        console.log('  Master brick scale:', masterBrick.scale);
-        console.log('  Master brick children:', masterBrick.children.length);
+        
         masterBrick.traverse((child) => {
           if (child instanceof THREE.Mesh) {
-            console.log('    Mesh child:', child.name, 'visible:', child.visible, 'geometry:', !!child.geometry, 'material:', !!child.material);
+            
           }
         });
       } else {
-        console.log('  Master brick does not exist!');
+        
       }
     };
 
@@ -790,47 +718,33 @@ export class GameManager {
     };
 
     (window as any).debugLayerUI = () => {
-      console.log('🔍 LayerProgressUI Debug:');
-      console.log('  UI exists:', !!this.layerProgressUI);
+      
       if (this.layerProgressUI) {
         const currentLayer = this.brickSystem.getCurrentActiveLayer();
         const progress = this.brickSystem.getLayerProgress(currentLayer);
-        console.log('  Current layer:', currentLayer + 1);
-        console.log('  Layer progress:', `${progress.filled}/${progress.total} (${progress.percentage.toFixed(1)}%)`);
-        console.log('  Calling debugLayerProgress...');
+        
         this.brickSystem.debugLayerProgress();
       }
     };
 
     (window as any).testMultiplayerBrick = () => {
-      console.log('🧪 Testing multiplayer brick sync...');
-      console.log('🔌 Multiplayer enabled:', this.multiplayerSystem.isMultiplayerEnabled());
-      console.log('🔗 Network connected:', this.multiplayerSystem.networkManager?.isConnectedToServer());
-      console.log('👥 Remote player count:', this.multiplayerSystem.getRemotePlayerCount());
       
       // Try to place a test brick if carrying one
       if (this.gameState.isCarryingBrick) {
-        console.log('🧱 Attempting to place carried brick...');
+        
         const success = this.brickSystem.placeBrick();
-        console.log('📊 Placement result:', success);
+        
       } else {
-        console.log('🎯 Picking up a brick first...');
+        
         const pickupSuccess = this.brickSystem.pickupBrick();
-        console.log('📊 Pickup result:', pickupSuccess);
+        
         if (pickupSuccess) {
-          console.log('⏰ Try running testMultiplayerBrick() again to place the brick');
+          
         }
       }
     };
 
     (window as any).debugMultiplayerState = () => {
-      console.log('🔍 Multiplayer State Debug:');
-      console.log('  Multiplayer enabled:', this.multiplayerSystem.isMultiplayerEnabled());
-      console.log('  Network manager exists:', !!this.multiplayerSystem.networkManager);
-      console.log('  Network connected:', this.multiplayerSystem.networkManager?.isConnectedToServer());
-      console.log('  Local player ID:', this.multiplayerSystem.networkManager?.getLocalPlayerId());
-      console.log('  Remote players:', this.multiplayerSystem.getRemotePlayerCount());
-      console.log('  User profile:', this.user);
       
       // Check scene for network bricks
       let networkBrickCount = 0;
@@ -842,36 +756,25 @@ export class GameManager {
           localBrickCount++;
         }
       });
-      console.log('  Network bricks in scene:', networkBrickCount);
-      console.log('  Local bricks in scene:', localBrickCount);
-      console.log('  Total placed bricks:', this.brickSystem.getPlacedBricksCount());
+      
     };
 
     (window as any).forceResyncBricks = () => {
-      console.log('🔄 Forcing brick resync...');
-      this.multiplayerSystem.forceResyncBricks();
+      console.log('🔄 Force resync not needed in simplified system');
     };
 
     (window as any).connectMultiplayer = async () => {
       if (!this.user) {
-        console.log('❌ No user profile available for multiplayer connection');
+        
         return false;
       }
       
-      console.log('🔌 Manually connecting to multiplayer...');
-      console.log('👤 User profile:', this.user);
-      console.log('🌐 Server URL:', import.meta.env.VITE_MULTIPLAYER_SERVER_URL || 'http://localhost:3002');
-      
       try {
         const connected = await this.multiplayerSystem.connect(this.user);
-        console.log('🎮 Manual connection result:', connected);
-        console.log('🔗 Multiplayer enabled:', this.multiplayerSystem.isMultiplayerEnabled());
-        console.log('🔗 Network connected:', this.multiplayerSystem.networkManager?.isConnectedToServer());
-        console.log('🆔 Local player ID:', this.multiplayerSystem.networkManager?.getLocalPlayerId());
         
         // Test brick placement after connection
         if (connected) {
-          console.log('✅ Connection successful! You can now test brick placement with testMultiplayerBrick()');
+          
         }
         
         return connected;
@@ -882,108 +785,39 @@ export class GameManager {
     };
 
     (window as any).checkServerConnection = async () => {
-      console.log('🔍 Checking server connection...');
+      
       const serverUrl = import.meta.env.VITE_MULTIPLAYER_SERVER_URL || 'http://localhost:3002';
-      console.log('🌐 Server URL:', serverUrl);
       
       try {
         const response = await fetch(`${serverUrl}/health`);
         const data = await response.json();
-        console.log('✅ Server health check:', data);
+        
         return data;
       } catch (error) {
         console.error('❌ Server health check failed:', error);
-        console.log('💡 Make sure the multiplayer server is running on port 3002');
+        
         return null;
       }
     };
 
     (window as any).debugRemotePlayers = () => {
-      console.log('🔍 Remote Players Debug:');
-      const remotePlayerManager = this.multiplayerSystem.remotePlayerManager;
-      if (remotePlayerManager) {
-        console.log('  Remote players count:', remotePlayerManager.getRemotePlayerCount());
-        console.log('  Remote players map:', remotePlayerManager.getRemotePlayers());
-        console.log('  Player targets:', remotePlayerManager.getPlayerTargets());
-        
-        // Check scene for remote player objects
-        let sceneRemotePlayerCount = 0;
-        this.scene.traverse((child) => {
-          if (child.name && child.name.startsWith('player-')) {
-            sceneRemotePlayerCount++;
-            console.log('    Scene player object:', child.name, 'visible:', child.visible, 'position:', child.position);
-          }
-        });
-        console.log('  Remote players in scene:', sceneRemotePlayerCount);
-      } else {
-        console.log('❌ Remote player manager not available');
-      }
+      console.log('🔍 Remote Players Debug:', {
+        count: this.multiplayerSystem.getRemotePlayerCount(),
+        connected: this.multiplayerSystem.isMultiplayerEnabled()
+      });
     };
 
-    console.log('🌍 Global functions exposed:');
-    console.log('  - clearAllBricks() - Clear all bricks');
-    console.log('  - giveBrick() - Give yourself a brick to carry');
-    console.log('  - testUnified() - Test unified brick system');
-    console.log('  - debugVisibility() - Debug brick visibility');
-    console.log('  - debugMasterBrick() - Show master brick information');
-    console.log('  - debugPlatform() - Debug platform and grid setup');
-    console.log('  - debugBrickState() - Show detailed brick state info');
-    console.log('  - debugBrickPositioning() - Show brick positioning calculations');
-    console.log('  - debugBrickState() - Show current brick state');
-    console.log('  - debugGrid() - Show grid occupancy info');
-    console.log('  - showGrid() - Show magenta grid lines permanently');
-    console.log('  - toggleGrid() - Toggle grid visualization on/off');
-    console.log('  - testBrickPlacement() - Test brick pickup/placement');
-    console.log('  - testCentering() - Place test bricks at corners and center to verify positioning');
-    console.log('  - testSingleBrick() - Place one brick with detailed positioning analysis');
-    console.log('  - fixFloatingBricks() - Fix all existing floating bricks to sit on platform');
-    console.log('  - debugGridSystem() - Show detailed grid system and platform information');
-    console.log('  - verifyPlatform() - Verify custom platform alignment and positioning');
-    console.log('  - debugLayerProgress() - Show current layer progress and brick counts');
-    console.log('  - debugLayerUI() - Debug layer UI synchronization issues');
-    console.log('  - testMultiplayerBrick() - Test multiplayer brick placement sync');
-    console.log('  - debugMultiplayerState() - Show detailed multiplayer connection state');
-    console.log('  - forceResyncBricks() - Force resync all bricks from server');
-    console.log('  - connectMultiplayer() - Manually connect to multiplayer server');
-    console.log('  - checkServerConnection() - Check if multiplayer server is running');
-    console.log('  - debugRemotePlayers() - Debug remote player state and duplicates');
-    console.log('');
-    console.log('🎮 Controls:');
-    console.log('  - Click/tap: Pick up brick (when near pile) or place brick (when carrying)');
-    console.log('  - WASD: Move character');
-    console.log('  - Mouse: Look around');
-    console.log('');
-    console.log('🏗️ New Fill Functions:');
-    console.log('  - fillAllLayers() - Fill 4 layers with different colors');
-    console.log('  - fillAllLayers(2) - Fill only 2 layers');
-    console.log('  - fillLayer(0) - Fill just the first layer');
-    console.log('  - fillLayer(1) - Fill just the second layer');
-    console.log('');
-    console.log('📏 Proximity Rules:');
-    console.log('  - Must be within 3 units of brick pile to pick up bricks');
-    console.log('  - Ghost brick shows where brick will be placed');
-    console.log('  - Green ghost = valid placement, Red ghost = invalid');
-    console.log('');
-    console.log('🐛 If you have issues, try: hardReset()');
   }
 
   public toggleGreenPlane(): void {
-    console.log('🟢 Green plane toggle - unified system');
+    
   }
 
   // Simple test method for the new system
   public testUnifiedSystem(): void {
-    console.log('🧪 Testing Unified Brick System...');
-    console.log('📏 Grid size:', this.brickSystem.getGridSize());
-    console.log('📏 Cell size:', this.brickSystem.getCellSize());
-    console.log('📏 Brick height:', this.brickSystem.getBrickHeight());
-    console.log('📍 Grid origin:', this.brickSystem.getGridOrigin());
-    console.log('🧱 Placed bricks:', this.brickSystem.getPlacedBricksCount());
-    console.log('🎒 Carrying brick:', this.brickSystem.isCarryingBrick());
+    
     this.brickSystem.debugBrickVisibility();
   }
-
-
 
   public isGameInitialized(): boolean {
     return this.isInitialized;
@@ -991,29 +825,37 @@ export class GameManager {
 
   // Multiplayer methods
   public async connectToMultiplayer(user: UserProfile): Promise<boolean> {
-    return await this.multiplayerManager.connect(user);
+    return await this.multiplayerSystem.connect(user);
   }
 
   public disconnectFromMultiplayer(): void {
-    this.multiplayerManager.disconnect();
+    this.multiplayerSystem.disconnect();
   }
 
   public isMultiplayerConnected(): boolean {
-    return this.multiplayerManager.isConnected();
+    return this.multiplayerSystem.isMultiplayerEnabled();
   }
 
   public getRemotePlayerCount(): number {
-    return this.multiplayerManager.getRemotePlayerCount();
+    return this.multiplayerSystem.getRemotePlayerCount();
   }
 
   public debugMultiplayer(): void {
     this.debugManager.debugMultiplayer();
   }
 
-
-
   public printHelp(): void {
     this.debugManager.printHelp();
+  }
+
+  // Chat methods
+  public sendChatMessage(text: string, user: any): void {
+    this.multiplayerSystem.sendChatMessage(text, user);
+  }
+
+  // Nametag methods
+  public setRemoteNametagVisible(visible: boolean): void {
+    this.multiplayerSystem.setNametagVisible(visible);
   }
 
   // Force immediate multiplayer position sync
@@ -1022,49 +864,6 @@ export class GameManager {
       this.multiplayerManager.forceSync(this.sceneObjects.character, this.gameState);
     }
   }
-
-  public toggleRemotePlayerDebug(): void {
-    this.multiplayerManager.toggleRemotePlayerDebug();
-  }
-
-  public forceRemotePlayerFallback(): void {
-    this.multiplayerManager.forceRemotePlayerFallback();
-  }
-
-  public startUpdateFrequencyMonitor(): void {
-    this.multiplayerManager.startUpdateFrequencyMonitor();
-  }
-
-  public stopUpdateFrequencyMonitor(): void {
-    this.multiplayerManager.stopUpdateFrequencyMonitor();
-  }
-
-  // Force sync all multiplayer data
-  public forceSyncMultiplayer(): void {
-    this.forceMultiplayerSync();
-  }
-
-  public forceCleanupRemotePlayers(): void {
-    this.multiplayerManager.forceCleanupRemotePlayers();
-  }
-
-  public debugRemotePlayersInfo(): void {
-    this.multiplayerManager.debugRemotePlayersInfo();
-  }
-
-  public requestForceSync(): void {
-    this.multiplayerManager.requestForceSync();
-  }
-
-  public sendChatMessage(text: string, user: UserProfile): void {
-    this.multiplayerManager.sendChatMessage(text, user);
-  }
-
-
-
-
-
-
 
   public dispose(): void {
     // Stop game loop

@@ -44,11 +44,11 @@ export class MultiplayerManager {
     try {
       const success = await this.multiplayerSystem.connect(user);
       if (success) {
-        console.log('🎮 Connected to multiplayer successfully');
+        
       }
       return success;
     } catch (error) {
-      console.warn('⚠️ Failed to connect to multiplayer:', error);
+      
       return false;
     }
   }
@@ -162,9 +162,7 @@ export class MultiplayerManager {
 
   // Debug methods
   public debug(): void {
-    console.log('=== MULTIPLAYER DEBUG ===');
-    console.log('Multiplayer enabled:', this.isConnected());
-    console.log('Remote player count:', this.getRemotePlayerCount());
+    
     this.multiplayerSystem.debugRemotePlayers();
   }
 

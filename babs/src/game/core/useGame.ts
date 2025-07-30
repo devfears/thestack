@@ -2,7 +2,6 @@ import { useRef, useEffect, useState, useMemo } from 'react';
 import { GameManager } from './GameManager';
 import { UserProfile } from './types';
 
-
 export const useGame = (user: UserProfile | null, onRemotePlayerCountChange: (count: number) => void) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const gameManagerRef = useRef<GameManager | null>(null);
@@ -26,13 +25,6 @@ export const useGame = (user: UserProfile | null, onRemotePlayerCountChange: (co
         (window as any).forceRemotePlayerFallback = () => gameManagerRef.current?.forceRemotePlayerFallback();
         (window as any).startUpdateFrequencyMonitor = () => gameManagerRef.current?.startUpdateFrequencyMonitor();
         (window as any).stopUpdateFrequencyMonitor = () => gameManagerRef.current?.stopUpdateFrequencyMonitor();
-        console.log('GameManager initialized and exposed globally for debugging');
-        console.log('Available debug commands:');
-        console.log('- debugMultiplayer() - Show detailed player info');
-        console.log('- toggleRemotePlayerDebug() - Toggle debug boxes around players');
-        console.log('- forceRemotePlayerFallback() - Use simple geometry for all players');
-        console.log('- startUpdateFrequencyMonitor() - Monitor position update frequency');
-        console.log('- stopUpdateFrequencyMonitor() - Stop monitoring updates');
         
         // Wait for the game to be fully initialized
         const checkInitialization = () => {

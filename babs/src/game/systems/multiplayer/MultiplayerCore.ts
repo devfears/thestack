@@ -24,7 +24,15 @@ export class MultiplayerCore {
   constructor(gameManager: GameManager, scene: THREE.Scene) {
     this.gameManager = gameManager;
     this.scene = scene;
-    this.networkManager = new NetworkManager();
+    
+    // Initialize NetworkManager with error handling
+    try {
+      this.networkManager = new NetworkManager();
+      console.log('✅ NetworkManager initialized successfully');
+    } catch (error) {
+      console.error('❌ Failed to initialize NetworkManager:', error);
+      throw error;
+    }
     
     // Initialize enhanced state managers
     this.connectionStateManager = ConnectionStateManager.getInstance();
@@ -38,12 +46,10 @@ export class MultiplayerCore {
     const canConnect = await this.connectionStateManager.requestConnection(user);
     
     if (!canConnect) {
-      console.log('🔌 Connection request denied by state manager');
       return this.isEnabled;
     }
 
     this.isConnecting = true;
-    console.log('🌐 Attempting to connect to multiplayer server...');
 
     try {
       const connected = await this.networkManager.connect(user);
@@ -56,11 +62,9 @@ export class MultiplayerCore {
         }
         
         this.isEnabled = connected;
-        console.log('✅ Successfully connected to multiplayer server');
       } else {
         this.connectionStateManager.onConnectionFailure();
         this.isEnabled = false;
-        console.warn('⚠️ Failed to connect to multiplayer server, continuing in single-player mode');
       }
       
       return connected;
@@ -75,8 +79,6 @@ export class MultiplayerCore {
   }
 
   public disconnect(): void {
-    console.log('🔌 Disconnecting from multiplayer server');
-    
     // Use connection state manager for clean disconnection
     this.connectionStateManager.requestDisconnection();
     
@@ -93,13 +95,36 @@ export class MultiplayerCore {
   }
 
   public isMultiplayerEnabled(): boolean {
-    // Fix: Check both isEnabled flag AND actual network connection
-    const networkConnected = this.networkManager.isConnectedToServer();
-    if (networkConnected && !this.isEnabled) {
-      console.log('🔧 Fixing multiplayer enabled state - network is connected but isEnabled was false');
+    // Add defensive checks to prevent runtime errors
+    if (!this.networkManager) {
+      console.warn('⚠️ NetworkManager is not initialized');
+      return false;
+    }
+    
+    // Check if socket exists and is connected
+    let socketConnected = false;
+    try {
+      const socket = this.networkManager.getSocket();
+      socketConnected = socket?.connected || false;
+    } catch (error) {
+      console.warn('Could not check socket connection status:', error);
+    }
+    
+    // Use network manager's connection status as primary check
+    const networkManagerConnected = this.networkManager.isConnectedToServer();
+    
+    // Enable multiplayer if either the socket is connected OR network manager reports connected
+    const shouldBeEnabled = socketConnected || networkManagerConnected;
+    
+    // Update internal state if connection is detected
+    if (shouldBeEnabled && !this.isEnabled) {
+      console.log('🔧 Connection detected, enabling multiplayer');
       this.isEnabled = true;
     }
-    return this.isEnabled && networkConnected;
+    
+    const result = shouldBeEnabled && this.isEnabled;
+    
+    return result;
   }
 
   public getNetworkManager(): NetworkManager {
@@ -118,8 +143,6 @@ export class MultiplayerCore {
     // Set up connection state manager callbacks
     this.connectionStateManager.setCallbacks(
       (state: string) => {
-        console.log(`🔄 Connection state changed: ${state}`);
-        
         if (state === 'disconnected') {
           this.isEnabled = false;
           this.isConnecting = false;
@@ -132,7 +155,6 @@ export class MultiplayerCore {
       },
       async (user: UserProfile) => {
         // Reconnection callback
-        console.log(`🔄 Attempting reconnection for ${user.username}`);
         return await this.networkManager.connect(user);
       },
       () => {
@@ -144,22 +166,19 @@ export class MultiplayerCore {
 
     // Set up player state manager callbacks (will be connected to RemotePlayerManager)
     this.playerStateManager.setCallbacks(
-      (player) => {
+      (_player) => {
         // Player added - will be handled by RemotePlayerManager
-        console.log(`👤 Player state manager: player added ${player.displayName}`);
       },
-      (playerId) => {
+      (_playerId) => {
         // Player removed - will be handled by RemotePlayerManager
-        console.log(`👤 Player state manager: player removed ${playerId}`);
       },
-      (player) => {
+      (_player) => {
         // Player updated - will be handled by RemotePlayerManager
-        console.log(`👤 Player state manager: player updated ${player.displayName}`);
       },
       (players) => {
         // Players list changed - include local player in count
         const totalPlayerCount = players.length + 1; // +1 for local player
-        console.log(`👥 Player count update: ${players.length} remote + 1 local = ${totalPlayerCount} total`);
+        console.log(`👥 Player count changed: ${players.length} remote + 1 local = ${totalPlayerCount} total`);
         if (this.onPlayerCountChange) {
           this.onPlayerCountChange(totalPlayerCount);
         }
@@ -168,7 +187,6 @@ export class MultiplayerCore {
   }
 
   public clearAllNetworkBricks(): void {
-    console.log('🧹 Clearing all network bricks from multiplayer core...');
     
     // Remove all network bricks from scene
     const objectsToRemove: THREE.Object3D[] = [];
@@ -189,7 +207,6 @@ export class MultiplayerCore {
     sceneObjects.solidObjects = sceneObjects.solidObjects.filter((obj: any) => !obj.userData.isNetworkBrick);
     sceneObjects.groundObjects = sceneObjects.groundObjects.filter((obj: any) => !obj.userData.isNetworkBrick);
     
-    console.log('✅ All network bricks cleared from multiplayer core');
   }
 
   public getPlayerStateManager(): PlayerStateManager {
@@ -201,8 +218,7 @@ export class MultiplayerCore {
   }
 
   public dispose(): void {
-    console.log('🧹 Disposing multiplayer core...');
-
+    
     // Clear all network bricks first
     this.clearAllNetworkBricks();
 
@@ -213,6 +229,5 @@ export class MultiplayerCore {
     // Disconnect from network
     this.networkManager.disconnect();
 
-    console.log('✅ Multiplayer core disposed');
   }
 }

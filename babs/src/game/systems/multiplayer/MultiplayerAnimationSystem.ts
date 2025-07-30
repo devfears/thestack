@@ -73,7 +73,6 @@ export class MultiplayerAnimationSystem {
       lastPosition: new THREE.Vector3()
     });
 
-    console.log(`✅ Initialized animations for remote player ${playerId}`);
   }
 
   public updateRemotePlayerAnimation(playerId: string, currentPosition: THREE.Vector3): void {
@@ -114,7 +113,6 @@ export class MultiplayerAnimationSystem {
       actions.current = targetAnimation;
       animationData.lastAnimationState = animationState;
 
-      console.log(`🎭 Player ${playerId} animation changed to: ${animationState}`);
     }
 
     // Update last position for next frame
@@ -171,7 +169,6 @@ export class MultiplayerAnimationSystem {
       actions.current = targetAnimation;
       animationData.lastAnimationState = animationName.toLowerCase();
 
-      console.log(`🎭 Player ${playerId} forced animation: ${animationName}`);
     }
   }
 
@@ -190,7 +187,7 @@ export class MultiplayerAnimationSystem {
       animationData.mixer.stopAllAction();
       animationData.mixer.uncacheRoot(animationData.mixer.getRoot());
       this.remotePlayerAnimations.delete(playerId);
-      console.log(`🎭 Removed animations for player ${playerId}`);
+      
     }
   }
 
@@ -204,8 +201,7 @@ export class MultiplayerAnimationSystem {
   }
 
   public dispose(): void {
-    console.log('🧹 Disposing multiplayer animation system...');
-
+    
     // Clean up all animation mixers
     this.remotePlayerAnimations.forEach((animationData, playerId) => {
       if (animationData.mixer) {
@@ -216,6 +212,5 @@ export class MultiplayerAnimationSystem {
 
     this.remotePlayerAnimations.clear();
 
-    console.log('✅ Multiplayer animation system disposed');
   }
 }

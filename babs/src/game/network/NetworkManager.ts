@@ -356,6 +356,12 @@ export class NetworkManager {
       // Connection is healthy
     });
     
+    // Handle player count updates from server
+    this.socket.on('player-count-update', (data: any) => {
+      console.log('👥 Received player count update from server:', data.count);
+      // This will be handled by the current-players event, but we can use it for validation
+    });
+    
     this.socket.on('reconnect_error', (error: Error) => {
       console.error('🚨 Reconnection error:', error.message);
     });
@@ -584,6 +590,10 @@ export class NetworkManager {
       console.log('🔄 Requesting force sync from server');
       this.socket.emit('request-force-sync', { timestamp: Date.now() });
     }
+  }
+
+  public getSocket(): Socket | null {
+    return this.socket;
   }
 
   public disconnect(): void {

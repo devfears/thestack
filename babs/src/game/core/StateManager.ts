@@ -13,7 +13,7 @@ export class StateManager {
   private sceneObjects: SceneObjects;
   private buildingManager: BuildingManager;
   private multiplayerManager: MultiplayerManager;
-  private brickSystem: UnifiedBrickSystem;
+  private _brickSystem: UnifiedBrickSystem;
   private userProfile: UserProfile | null = null;
 
   constructor(
@@ -27,7 +27,7 @@ export class StateManager {
     this.sceneObjects = sceneObjects;
     this.buildingManager = buildingManager;
     this.multiplayerManager = multiplayerManager;
-    this.brickSystem = brickSystem;
+    this._brickSystem = brickSystem;
   }
 
   /**
@@ -284,9 +284,9 @@ export class StateManager {
   /**
    * Set multiplayer enabled (handled by connection state)
    */
-  public setMultiplayerEnabled(enabled: boolean): void {
+  public setMultiplayerEnabled(_enabled: boolean): void {
     // Multiplayer state is managed by connection, not a separate flag
-    console.log(`Multiplayer ${enabled ? 'enabled' : 'disabled'} - managed by connection state`);
+    
   }
 
   /**
@@ -309,7 +309,7 @@ export class StateManager {
    */
   public toggleCameraFollow(): void {
     this.gameState.cameraFollowEnabled = !this.gameState.cameraFollowEnabled;
-    console.log(`📷 Camera follow: ${this.gameState.cameraFollowEnabled ? 'ON' : 'OFF'}`);
+    
   }
 
   /**

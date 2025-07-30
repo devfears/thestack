@@ -58,7 +58,6 @@ export class AnimationSystemManager {
       this.animations.current = this.animations.idle;
     }
 
-    
   }
 
   fadeToAction(

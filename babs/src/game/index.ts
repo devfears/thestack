@@ -14,4 +14,3 @@ export * from './scene';
 export * from './building';
 
 // UI components
-export * from './ui';

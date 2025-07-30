@@ -400,8 +400,6 @@ export class PhysicsSystemManager {
       return false;
     }
     
-
-
     // Calculate new position
     const moveDistance = direction === 'forward' ? speed : -speed;
     this.tempVectors[1].copy(character.position);
@@ -411,8 +409,6 @@ export class PhysicsSystemManager {
     const forward = new THREE.Vector3(0, 0, moveDistance);
     forward.applyQuaternion(character.quaternion);
     this.tempVectors[1].add(forward);
-    
-
     
     // Check if we can move to this position (with step-up support)
     const moveResult = this.canMoveToPosition(character, this.tempVectors[1], groundObjects, solidObjects);

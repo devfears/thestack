@@ -24,7 +24,6 @@ export class ConnectionStateManager {
   private constructor() {
     // Generate unique tab ID to prevent cross-tab interference
     this.tabId = `tab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    console.log(`🆔 Connection state manager initialized with tab ID: ${this.tabId}`);
     
     this.setupPageVisibilityHandling();
     this.setupStorageListener();
@@ -52,19 +51,19 @@ export class ConnectionStateManager {
     
     // Prevent rapid connection attempts (but allow multiple tabs)
     if (now - this.lastConnectionAttempt < this.connectionCooldown) {
-      console.log(`⏰ Connection cooldown active, waiting ${this.connectionCooldown - (now - this.lastConnectionAttempt)}ms`);
+      
       return false;
     }
 
     // Allow multiple connections per user (different tabs)
     // Only prevent if this specific tab is already connected/connecting
     if (this.connectionState === 'connected') {
-      console.log(`🔌 This tab already connected, skipping connection request`);
+      
       return true;
     }
     
     if (this.connectionState === 'connecting') {
-      console.log(`🔌 This tab already connecting, skipping connection request`);
+      
       return false;
     }
 
@@ -72,7 +71,6 @@ export class ConnectionStateManager {
     this.currentUser = user;
     this.setConnectionState('connecting');
 
-    console.log(`✅ Connection request approved for tab ${this.tabId}`);
     return true; // Actual connection will be handled by the caller
   }
 
@@ -81,16 +79,14 @@ export class ConnectionStateManager {
     this.setConnectionState('connected');
     this.startHeartbeat();
     
-    console.log(`✅ Connection successful for tab ${this.tabId} with ID: ${connectionId}`);
   }
 
   public onConnectionFailure(): void {
     this.setConnectionState('disconnected');
-    console.log(`❌ Connection failed for tab ${this.tabId}`);
+    
   }
 
   public onDisconnection(reason: string): void {
-    console.log(`🔌 Disconnected: ${reason}`);
     
     this.stopHeartbeat();
     
@@ -116,8 +112,6 @@ export class ConnectionStateManager {
     this.stopHeartbeat();
     this.clearReconnectTimer();
     
-    console.log(`🔌 Disconnection requested for tab ${this.tabId}`);
-    
     if (this.onDisconnectCallback) {
       this.onDisconnectCallback();
     }
@@ -137,7 +131,7 @@ export class ConnectionStateManager {
 
   private setConnectionState(state: 'disconnected' | 'connecting' | 'connected' | 'reconnecting'): void {
     if (this.connectionState !== state) {
-      console.log(`🔄 Connection state: ${this.connectionState} → ${state}`);
+      
       this.connectionState = state;
       
       if (this.onStateChangeCallback) {
@@ -152,15 +146,13 @@ export class ConnectionStateManager {
       this.isPageVisible = !document.hidden;
       
       if (this.isPageVisible) {
-        console.log(`👁️ Page visible (${this.tabId})`);
         
         // If we have a user but no connection, attempt reconnection
         if (this.currentUser && this.connectionState === 'disconnected') {
-          console.log(`🔄 Page became visible, attempting reconnection`);
+          
           this.scheduleReconnection();
         }
       } else {
-        console.log(`😴 Page hidden (${this.tabId})`);
         
         // Don't disconnect immediately, just stop reconnection attempts
         this.clearReconnectTimer();
@@ -169,18 +161,18 @@ export class ConnectionStateManager {
 
     // Handle page unload
     window.addEventListener('beforeunload', () => {
-      console.log(`🚪 Page unloading (${this.tabId})`);
+      
       this.requestDisconnection();
     });
 
     // Handle page focus/blur for additional tab management
     window.addEventListener('focus', () => {
-      console.log(`🎯 Page focused (${this.tabId})`);
+      
       this.isPageVisible = true;
     });
 
     window.addEventListener('blur', () => {
-      console.log(`😴 Page blurred (${this.tabId})`);
+      
       // Don't change isPageVisible here, let visibilitychange handle it
     });
   }
@@ -192,11 +184,10 @@ export class ConnectionStateManager {
         const data = event.newValue ? JSON.parse(event.newValue) : null;
         
         if (data && data.tabId !== this.tabId) {
-          console.log(`📡 Another tab (${data.tabId}) changed connection state:`, data.state);
           
           // If another tab connected, we should disconnect to prevent conflicts
           if (data.state === 'connected' && this.connectionState === 'connected') {
-            console.log(`🚫 Another tab connected, disconnecting this tab to prevent conflicts`);
+            
             this.requestDisconnection();
           }
         }
@@ -217,7 +208,6 @@ export class ConnectionStateManager {
       this.reconnectTimer = null;
       
       if (this.currentUser && this.isPageVisible && this.onReconnectCallback) {
-        console.log(`🔄 Attempting reconnection for ${this.currentUser.username}`);
         
         const success = await this.onReconnectCallback(this.currentUser);
         
@@ -242,7 +232,7 @@ export class ConnectionStateManager {
     this.heartbeatTimer = setInterval(() => {
       if (this.connectionState === 'connected') {
         // Heartbeat logic will be handled by NetworkManager
-        console.log(`💓 Heartbeat check (${this.tabId})`);
+        
       }
     }, 10000); // Every 10 seconds
   }

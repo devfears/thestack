@@ -87,15 +87,11 @@ export class ModelLoaderManager {
       // Calculate distance from camera to character
       const distance = this.sceneObjects.camera.position.distanceTo(this.sceneObjects.character.position);
       
-      // Scale factor to keep nametag consistent size (adjust base scale as needed)
-      const baseScale = 0.02; // Base scale factor
-      const minScale = 0.5; // Minimum scale to prevent nametags from becoming too small
-      const maxScale = 2.0; // Maximum scale to prevent nametags from becoming too large
-      
-      const scale = Math.max(minScale, Math.min(maxScale, distance * baseScale));
+      // Improved scale calculation to match remote player nametags
+      const baseScale = Math.max(0.4, Math.min(1.2, 4 / distance)); // Scale between 0.4x and 1.2x
       
       // Apply scale to the nametag
-      this.nametag.scale.set(scale, scale, scale);
+      this.nametag.scale.set(baseScale, baseScale, baseScale);
     }
   }
 
@@ -155,26 +151,36 @@ export class ModelLoaderManager {
           this.sceneObjects.character = characterContainer;
           this.scene.add(characterContainer);
 
-          // Create nametag (hidden by default)
+          // Create optimized nametag (hidden by default)
           const nametagDiv = document.createElement('div');
-          nametagDiv.className = 'nametag';
+          nametagDiv.className = 'nametag local-player-nametag';
           if (this.user?.fid === 1023416) {
             nametagDiv.classList.add('developer-nametag');
             nametagDiv.textContent = 'the DEV';
+            // Normal colors like other players
+            nametagDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+            nametagDiv.style.color = '#ffffff';
+            // Rainbow animated border that everyone can see
+            nametagDiv.style.border = '2px solid transparent';
+            nametagDiv.style.background = 'linear-gradient(rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.9)) padding-box, linear-gradient(45deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3) border-box';
+            nametagDiv.style.animation = 'rainbow-border 2s linear infinite';
           } else {
             nametagDiv.textContent = this.user?.displayName || 'Player';
+            nametagDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+            nametagDiv.style.color = '#ffffff';
+            nametagDiv.style.border = '2px solid #4a4a4a';
           }
-          nametagDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-          nametagDiv.style.color = '#ffffff';
-          nametagDiv.style.padding = '8px 12px';
-          nametagDiv.style.borderRadius = '4px';
+          nametagDiv.style.padding = '4px 8px';
+          nametagDiv.style.borderRadius = '0px'; // Pixel style
           nametagDiv.style.fontSize = '10px';
           nametagDiv.style.fontFamily = '"Press Start 2P", cursive';
-          nametagDiv.style.border = '2px solid #4a4a4a';
-          nametagDiv.style.textShadow = '2px 2px 0px #000';
-          nametagDiv.style.letterSpacing = '1px';
+          nametagDiv.style.textShadow = '1px 1px 0px #000';
+          nametagDiv.style.letterSpacing = '0.5px';
           nametagDiv.style.textAlign = 'center';
           nametagDiv.style.whiteSpace = 'nowrap';
+          nametagDiv.style.imageRendering = 'pixelated';
+          nametagDiv.style.userSelect = 'none';
+          nametagDiv.style.pointerEvents = 'none';
 
           const nametag = new CSS2DObject(nametagDiv);
           nametag.position.set(0, 1.8, 0); // Position above character's head
@@ -196,9 +202,6 @@ export class ModelLoaderManager {
           // Initialize animations with the character model (not the container)
           this.animationSystem.initializeAnimations(character, gltf);
           
-          console.log('✅ Character container created successfully with model and nametag');
-          
-      
           resolve();
         },
         undefined,
@@ -280,8 +283,6 @@ export class ModelLoaderManager {
     return brickPile;
   }
 
-
-
   public async loadMasterBrick(): Promise<void> {
     return new Promise((resolve, reject) => {
       this.loader.load(
@@ -323,7 +324,6 @@ export class ModelLoaderManager {
             this.sceneObjects.ghostBrick = ghostBrick;
           }
           
-      
           resolve();
         },
         undefined,
@@ -335,7 +335,6 @@ export class ModelLoaderManager {
   public async loadPlatform(gridSize: number, cellSize: number): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
-        console.log('🏗️ Creating custom building platform...');
         
         // Create a custom platform that's perfectly aligned with our grid system
         // Make it wider to accommodate the full grid and prevent floating bricks
@@ -373,11 +372,6 @@ export class ModelLoaderManager {
         this.scene.add(platformGroup);
         this.sceneObjects.groundObjects.push(platformGroup);
         this.sceneObjects.buildingPlatform = platformGroup;
-        
-        console.log('✅ Custom building platform created');
-        console.log('📍 Platform position:', platformGroup.position);
-        console.log('📏 Platform dimensions:', { width: platformWidth, height: platformHeight, depth: platformDepth });
-        console.log('🔝 Platform top Y:', platform.position.y + platformHeight / 2);
         
         resolve();
       } catch (error) {
@@ -460,7 +454,6 @@ export class ModelLoaderManager {
   public async loadAllModels(): Promise<void> {
     try {
   
-      
       // Load models individually to better identify which one fails
       const modelLoaders = [
         { name: 'Character', loader: () => this.loadCharacter() },
@@ -479,14 +472,11 @@ export class ModelLoaderManager {
         }
       }
       
-  
     } catch (error) {
       console.error('Failed to load models:', error);
       throw error;
     }
   }
-
-
 
   // Create simplified collision mesh for complex objects like trees
   private createSimplifiedCollisionMesh(originalMesh: THREE.Object3D): THREE.Mesh | null {
@@ -535,7 +525,7 @@ export class ModelLoaderManager {
       
       return collisionMesh;
     } catch (error) {
-      console.warn('Failed to create simplified collision mesh:', error);
+      
       return null;
     }
   }

@@ -111,20 +111,56 @@ export class MultiplayerEventHandler {
         color: `#${(brickData.color || 0x4169E1).toString(16).padStart(6, '0')}`,
         visible: brick.visible,
         inScene: this.core.getScene().children.includes(brick),
-        userData: brick.userData
+        userData: brick.userData,
+        name: brick.name
       });
       
-      // Force visibility check
-      if (!brick.visible) {
-        console.warn('⚠️ Remote brick created but not visible, forcing visibility');
-        brick.visible = true;
+      // Force visibility and ensure proper scene integration
+      brick.visible = true;
+      brick.frustumCulled = false; // Prevent culling issues
+      
+      // AGGRESSIVE VISIBILITY FORCING
+      if (brick.material) {
+        if (Array.isArray(brick.material)) {
+          brick.material.forEach(mat => {
+            if (mat instanceof THREE.Material) {
+              mat.visible = true;
+              mat.needsUpdate = true;
+              if (mat instanceof THREE.MeshStandardMaterial) {
+                mat.transparent = false;
+                mat.opacity = 1.0; 
+              }
+            }
+          });
+        } else if (brick.material instanceof THREE.Material) {
+          brick.material.visible = true;
+          brick.material.needsUpdate = true;
+          if (brick.material instanceof THREE.MeshStandardMaterial) {
+            brick.material.transparent = false;
+            brick.material.opacity = 1.0;
+          }
+        }
       }
       
-      // Ensure brick is in scene
+      // Double-check scene integration
       if (!this.core.getScene().children.includes(brick)) {
-        console.warn('⚠️ Remote brick not in scene, adding it');
+        console.warn('⚠️ Remote brick not in scene, adding it manually');
         this.core.getScene().add(brick);
       }
+      
+      // Force render update by triggering a position change
+      const currentPos = brick.position.clone();
+      brick.position.copy(currentPos);
+      brick.updateMatrixWorld(true);
+      
+      // Try to force a render by scaling up and down
+      const originalScale = brick.scale.clone();
+      brick.scale.multiplyScalar(1.001);
+      brick.updateMatrixWorld(true);
+      setTimeout(() => {
+        brick.scale.copy(originalScale);
+        brick.updateMatrixWorld(true);
+      }, 10);
       
       // Debug: Check if brick is visible in scene
       const gameManager = this.core.getGameManager();
@@ -141,9 +177,17 @@ export class MultiplayerEventHandler {
             `#${brick.material.color.getHex().toString(16).padStart(6, '0')}` : 'unknown',
           scale: brick.scale,
           castShadow: brick.castShadow,
-          receiveShadow: brick.receiveShadow
+          receiveShadow: brick.receiveShadow,
+          layers: brick.layers.mask
         });
+        
+        // Ensure material is properly configured
+        if (brick.material instanceof THREE.MeshStandardMaterial) {
+          brick.material.needsUpdate = true;
+        }
       }
+      
+      console.log('🎯 Remote brick placement completed successfully!');
       
     } else {
       console.error('❌ Failed to create remote brick');

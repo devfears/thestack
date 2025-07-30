@@ -110,30 +110,10 @@ export class MultiplayerSystem {
     color: number;
     gridPosition: { x: number, z: number, layer: number };
   }): void {
-    console.log('🧱 MultiplayerSystem.sendBrickPlaced called with:', brickData);
-    console.log('🔌 Multiplayer enabled:', this.core.isMultiplayerEnabled());
-    console.log('🔗 Network manager connected:', this.core.getNetworkManager().isConnectedToServer());
-
-    if (!this.core.isMultiplayerEnabled()) {
-      console.log('❌ Multiplayer not enabled, brick placement not sent to server');
-      return;
-    }
-
-    if (!this.core.getNetworkManager().isConnectedToServer()) {
-      console.log('❌ Network manager not connected, brick placement not sent to server');
-      return;
-    }
-
-    console.log('📤 Sending brick placement to server via NetworkManager');
-    console.log('📊 Brick data being sent:', {
-      position: { x: brickData.position.x, y: brickData.position.y, z: brickData.position.z },
-      worldPosition: { x: brickData.worldPosition.x, y: brickData.worldPosition.y, z: brickData.worldPosition.z },
-      color: `#${brickData.color.toString(16).padStart(6, '0')}`,
-      gridPosition: brickData.gridPosition
-    });
+    if (!this.core.isMultiplayerEnabled()) return;
+    if (!this.core.getNetworkManager().isConnectedToServer()) return;
 
     this.core.getNetworkManager().sendBrickPlaced(brickData);
-    console.log('✅ Brick placement sent to server successfully');
   }
 
   public sendBrickPickedUp(): void {
@@ -240,15 +220,15 @@ export class MultiplayerSystem {
   }
 
   public forceResyncBricks(): void {
-    console.log('🔄 Forcing brick resync...');
+    
     if (!this.core.isMultiplayerEnabled()) {
-      console.log('❌ Multiplayer not enabled');
+      
       return;
     }
 
     // Request fresh game state from server
     this.core.getNetworkManager().requestForceSync();
-    console.log('📤 Requested force sync from server');
+    
   }
 
   public forceCleanupAllRemotePlayers(): void {
@@ -256,7 +236,7 @@ export class MultiplayerSystem {
   }
 
   public clearAllNetworkBricks(): void {
-    console.log('🧹 Clearing all network bricks from multiplayer system...');
+    
     this.core.clearAllNetworkBricks();
     this.eventHandler.clearAllNetworkBricks();
   }
@@ -279,14 +259,12 @@ export class MultiplayerSystem {
   // === DISPOSAL ===
 
   public dispose(): void {
-    console.log('🧹 Disposing multiplayer system...');
-
+    
     // Dispose all components in reverse order
     this.debugTools.dispose();
     this.eventHandler.dispose();
     this.remotePlayerManager.dispose();
     this.core.dispose();
 
-    console.log('✅ Multiplayer system disposed');
   }
 }

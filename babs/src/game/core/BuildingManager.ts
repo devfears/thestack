@@ -33,7 +33,6 @@ export class BuildingManager {
    */
   public toggleBuildMode(): void {
     this.gameState.isBuildMode = !this.gameState.isBuildMode;
-    console.log(`🏗️ Build mode: ${this.gameState.isBuildMode ? 'ON' : 'OFF'}`);
     
     // Update UI or visual indicators here if needed
     // This could trigger UI updates through events
@@ -44,12 +43,12 @@ export class BuildingManager {
    */
   public pickupBrick(): boolean {
     if (!this.sceneObjects.character || !this.sceneObjects.brickPile) {
-      console.log('❌ Character or brick pile not found');
+      
       return false;
     }
 
     if (this.gameState.isCarryingBrick) {
-      console.log('❌ Already carrying a brick');
+      
       return false;
     }
 
@@ -58,7 +57,7 @@ export class BuildingManager {
     const maxDistance = 3;
 
     if (distance > maxDistance) {
-      console.log(`❌ Too far from brick pile (${distance.toFixed(1)} > ${maxDistance})`);
+      
       return false;
     }
 
@@ -66,7 +65,6 @@ export class BuildingManager {
     const success = this.brickSystem.pickupBrick();
     if (success) {
       this.gameState.isCarryingBrick = true;
-      console.log('✅ Picked up brick!');
       
       // Sync with multiplayer if connected
       if (this.multiplayerManager.isConnected() && this.sceneObjects.character) {
@@ -82,12 +80,12 @@ export class BuildingManager {
    */
   public placeBrick(): boolean {
     if (!this.gameState.isCarryingBrick) {
-      console.log('❌ Not carrying a brick');
+      
       return false;
     }
 
     if (!this.sceneObjects.character) {
-      console.log('❌ Character not found');
+      
       return false;
     }
 
@@ -95,7 +93,6 @@ export class BuildingManager {
     const success = this.brickSystem.placeBrick();
     if (success) {
       this.gameState.isCarryingBrick = false;
-      console.log('✅ Placed brick!');
       
       // Sync with multiplayer if connected
       if (this.multiplayerManager.isConnected() && this.sceneObjects.character) {
@@ -121,7 +118,6 @@ export class BuildingManager {
    * Clear all placed bricks
    */
   public clearAllBricks(): void {
-    console.log('🧹 Clearing all bricks...');
     
     // Clear from unified brick system
     this.brickSystem.clearAllBricks();
@@ -148,7 +144,6 @@ export class BuildingManager {
       this.multiplayerManager.sendClearAllBricks();
     }
     
-    console.log('✅ All bricks cleared');
   }
 
   /**
@@ -247,18 +242,17 @@ export class BuildingManager {
    * Handle brick placement from multiplayer
    */
   public handleMultiplayerBrickPlacement(data: any): void {
-    console.log('🌐 Received multiplayer brick placement:', data);
     
     // This would need to be implemented in UnifiedBrickSystem if needed
     // For now, just log the received data
-    console.log('Multiplayer brick placement received but not yet implemented');
+    
   }
 
   /**
    * Handle brick clearing from multiplayer
    */
   public handleMultiplayerBrickClear(): void {
-    console.log('🌐 Received multiplayer brick clear');
+    
     this.clearAllBricks();
   }
 

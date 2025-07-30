@@ -39,61 +39,38 @@ export class DebugManager {
   }
 
   public debugGameState(): void {
-    console.log('🎮 Game State Debug:');
-    console.log('- Is jumping:', this.gameState.isJumping);
-    console.log('- Is carrying brick:', this.gameState.isCarryingBrick);
-    console.log('- Is build mode:', this.gameState.isBuildMode);
-    console.log('- Camera follow enabled:', this.gameState.cameraFollowEnabled);
-    console.log('- Last animation state:', this.gameState.lastAnimationState);
-    console.log('- User profile:', this.user);
+    
   }
 
   public debugSceneObjects(): void {
-    console.log('🎬 Scene Objects Debug:');
-    console.log('- Character position:', this.sceneObjects.character?.position);
-    console.log('- Character rotation:', this.sceneObjects.character?.rotation);
-    console.log('- Camera position:', this.sceneObjects.camera?.position);
-    console.log('- Camera rotation:', this.sceneObjects.camera?.rotation);
-    console.log('- Placed bricks count:', this.sceneObjects.placedBricks?.length || 0);
+    
   }
 
   public debugBrickSystem(): void {
-    console.log('🧱 Brick System Debug:');
-    console.log('- Current layer:', this.brickSystem.getCurrentActiveLayer());
-    console.log('- Layer progress:', this.brickSystem.getLayerProgress(this.brickSystem.getCurrentActiveLayer()));
-    console.log('- Grid size:', this.brickSystem.getGridSize());
-    console.log('- Carried brick:', !!this.sceneObjects.carriedBrick);
-    console.log('- Ghost brick visible:', !!this.sceneObjects.ghostBrick?.visible);
+    
   }
 
   public debugMultiplayer(): void {
-    console.log('🔍 Multiplayer Debug Info:');
-    console.log('- Connected:', this.multiplayerManager.isConnected());
-    console.log('- Remote players:', this.multiplayerManager.getRemotePlayerCount());
+    
     this.multiplayerManager.debugRemotePlayersInfo();
   }
 
   public debugPerformance(): void {
-    console.log('⚡ Performance Debug:');
-    console.log('- Is mobile:', this.isMobile);
-    console.log('- Target frame time:', this.targetFrameTime);
-    console.log('- Frame count:', this.frameCount);
-    console.log('- Last frame time:', this.lastFrameTime);
-    console.log('- Animation frame ID:', this.animationFrameId);
+    
   }
 
   public debugAll(): void {
-    console.log('\n=== COMPLETE GAME DEBUG ===');
+    
     this.debugGameState();
-    console.log('');
+    
     this.debugSceneObjects();
-    console.log('');
+    
     this.debugBrickSystem();
-    console.log('');
+    
     this.debugMultiplayer();
-    console.log('');
+    
     this.debugPerformance();
-    console.log('=== END DEBUG ===\n');
+    
   }
 
   // Expose debug functions globally
@@ -104,7 +81,7 @@ export class DebugManager {
     (window as any).debugBricks = () => this.debugBrickSystem();
     (window as any).debugMultiplayer = () => this.debugMultiplayer();
     (window as any).debugPerformance = () => this.debugPerformance();
-    console.log('🔧 Debug functions exposed globally: debugGame(), debugGameState(), debugScene(), debugBricks(), debugMultiplayer(), debugPerformance()');
+    
   }
 
   // Update methods to keep debug info current

@@ -47,7 +47,6 @@ export class SceneSystemManager {
     // Get device capabilities
      const devicePixelRatio = window.devicePixelRatio;
  
-
      // Initialize renderer with aggressive mobile optimizations
      this.renderer = new THREE.WebGLRenderer({
        antialias: !this.isMobile, // Disable antialiasing on mobile
@@ -71,7 +70,6 @@ export class SceneSystemManager {
       // Mobile-specific optimizations
       this.renderer.info.autoReset = false; // Manual reset for better performance monitoring
       
-
     } else {
       // Desktop settings - still conservative
       this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -164,7 +162,6 @@ export class SceneSystemManager {
     // Third-person camera following
     const characterPosition = character.position;
     
-    
     // Calculate desired camera position based on character rotation
     const characterRotation = character.rotation.y;
     const offset = this.cameraSystem.offset.clone();
@@ -174,12 +171,8 @@ export class SceneSystemManager {
       .copy(characterPosition)
       .add(offset);
     
-    
-    
     // Smooth camera movement (more responsive)
     this.camera.position.lerp(desiredCameraPosition, 0.15);
-    
-    
     
     // Look at character
     this.cameraSystem.target.copy(characterPosition);
@@ -200,7 +193,7 @@ export class SceneSystemManager {
         
         // Log performance for debugging
         if (fps < 30) {
-          console.warn(`Low FPS detected: ${fps}fps. Consider further optimizations.`);
+          
         }
         
         // Reset renderer info for next measurement

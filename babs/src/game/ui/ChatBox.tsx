@@ -46,7 +46,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ user: _user, messages, onSendM
   };
 
   return (
-    <div style={{
+    <div className="mobile-chat-box" style={{
       position: 'fixed', // Changed to fixed for better mobile positioning
       top: '70px',
       left: '20px',

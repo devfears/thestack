@@ -5,8 +5,13 @@ import { defineConfig } from "vite";
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 5173,
+    port: 5174,
+    strictPort: true, // Fail if port is in use instead of trying another port
     allowedHosts: true,
+  },
+  preview: {
+    port: 5174,
+    strictPort: true, // Fail if port is in use instead of trying another port
   },
   build: {
     rollupOptions: {

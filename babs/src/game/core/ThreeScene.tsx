@@ -36,12 +36,10 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
   useEffect(() => {
     if (user && actions.connectToMultiplayer && !multiplayerConnected && !isConnecting) {
       setIsConnecting(true);
-      console.log('🤝 Attempting automatic multiplayer connection...');
       actions.connectToMultiplayer(user)
         .then(success => {
           onMultiplayerConnectChange?.(success);
           if (success) {
-            console.log('✅ Multiplayer connection successful');
           } else {
             console.warn('⚠️ Multiplayer connection failed');
           }
@@ -60,7 +58,6 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
   useEffect(() => {
     const disconnect = actions.disconnectFromMultiplayer;
     return () => {
-      console.log('🔌 Disconnecting from multiplayer on component unmount.');
       disconnect();
     };
   }, []); // Empty dependency array ensures this runs only on unmount
@@ -101,34 +98,26 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
       // Debug: Multiplayer debug info
       if (event.code === 'KeyM' && event.shiftKey) {
         actions.debugMultiplayer();
-        console.log('=== CAMERA DEBUG ===');
-        console.log('Camera position:', actions.getGameState()?.cameraFollowEnabled);
-        console.log('Remote player count:', actions.getRemotePlayerCount());
-        console.log('=== END CAMERA DEBUG ===');
       }
       
       // Debug: Toggle remote player debug boxes
       if (event.code === 'KeyR' && event.shiftKey) {
         actions.toggleRemotePlayerDebug();
-        console.log('🔍 Toggled remote player debug boxes');
       }
       
       // Debug: Force cleanup all remote players
       if (event.code === 'KeyX' && event.shiftKey) {
         actions.forceCleanupRemotePlayers();
-        console.log('🧹 Force cleaned up all remote players');
       }
       
       // Debug: Show remote players debug info
       if (event.code === 'KeyD' && event.shiftKey) {
         actions.debugRemotePlayersInfo();
-        console.log('📊 Remote players debug info logged');
       }
       
       // Debug: Request force sync
       if (event.code === 'KeyS' && event.shiftKey) {
         actions.requestForceSync();
-        console.log('🔄 Requested force sync from server');
       }
     };
 

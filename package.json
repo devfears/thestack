@@ -12,12 +12,11 @@
     "dev:client": "cd babs && npm run dev",
     "dev:server": "cd multiplayer-server && npm run dev",
     "build": "cd babs && npm run build",
+    "preview": "cd babs && npm run preview",
+    "start:server": "cd multiplayer-server && npm start",
     "install:all": "npm install && npm run install:client && npm run install:server",
     "install:client": "cd babs && npm install",
-    "install:server": "cd multiplayer-server && npm install",
-    "start": "concurrently \"npm run start:server\" \"npm run start:client\"",
-    "start:server": "cd multiplayer-server && npm start",
-    "start:client": "cd babs && npm run preview"
+    "install:server": "cd multiplayer-server && npm install"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

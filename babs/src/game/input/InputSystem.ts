@@ -5,7 +5,6 @@ import type { GameManager } from '../core/GameManager';
 import { PhysicsSystemManager } from '../character/PhysicsSystem';
 import { AnimationSystemManager } from '../character/AnimationSystem';
 
-
 export class InputSystemManager {
   private gameState: GameState;
   private physicsSystem: PhysicsSystemManager;
@@ -34,10 +33,8 @@ export class InputSystemManager {
   private handleKeyDown(event: KeyboardEvent): void {
     const key = event.code.toLowerCase();
     
-    
     this.gameState.keysPressed[key] = true;
     
-
     // Handle specific key actions
     switch (key) {
       case KEY_MAPPINGS.JUMP:
@@ -66,30 +63,30 @@ export class InputSystemManager {
   }
 
   private handlePickup(): void {
-    console.log('🎮 handlePickup called (E key), isCarryingBrick:', this.gameState.isCarryingBrick);
+    
     const character = this.gameManager.getSceneObjects().character;
     const brickPile = this.gameManager.getSceneObjects().brickPile;
 
     if (!character) {
-      console.log('❌ No character found');
+      
       return;
     }
 
     if (this.gameState.isCarryingBrick) {
-      console.log('⚠️ Already carrying a brick, use B to place it');
+      
       this.gameManager.getUIManager().showToast('Already carrying a brick! Press B to place it.', 2000);
       return;
     }
 
     if (!brickPile) {
-      console.log('❌ No brick pile found');
+      
       return;
     }
 
     const distance = character.position.distanceTo(brickPile.position);
-    console.log('📏 Distance to brick pile:', distance);
+    
     if (distance < 3) {
-      console.log('🧱 Attempting to pickup brick...');
+      
       this.gameManager.pickupBrick();
     } else {
       this.gameManager.getUIManager().showToast('Get closer to the brick pile to pick up a brick.', 2000);
@@ -97,30 +94,28 @@ export class InputSystemManager {
   }
 
   private handlePlacement(): void {
-    console.log('🎮 handlePlacement called (B key), isCarryingBrick:', this.gameState.isCarryingBrick);
+    
     const character = this.gameManager.getSceneObjects().character;
     const carriedBrick = this.gameManager.getSceneObjects().carriedBrick;
 
     if (!character) {
-      console.log('❌ No character found');
+      
       return;
     }
 
     if (!this.gameState.isCarryingBrick) {
-      console.log('⚠️ Not carrying a brick, use E to pick one up');
+      
       this.gameManager.getUIManager().showToast('Not carrying a brick! Press E near the brick pile to pick one up.', 2000);
       return;
     }
 
     if (!carriedBrick || !carriedBrick.visible) {
-      console.log('⚠️ Carried brick not visible, resetting state');
+      
       this.gameState.isCarryingBrick = false;
       return;
     }
 
-    console.log('🧱 Attempting to place brick...');
     const success = this.gameManager.placeBrick();
-    console.log('🧱 Place brick result:', success);
     
     if (!success) {
       this.gameManager.getUIManager().showToast('Cannot place brick here. Move closer to the building platform.', 3000);
@@ -128,7 +123,7 @@ export class InputSystemManager {
   }
 
   private handleInteraction(): void {
-    console.log('🎮 handleInteraction called (legacy), isCarryingBrick:', this.gameState.isCarryingBrick);
+    
     // Legacy method - now redirects to appropriate handler
     if (this.gameState.isCarryingBrick) {
       this.handlePlacement();
@@ -136,12 +131,6 @@ export class InputSystemManager {
       this.handlePickup();
     }
   }
-
-
-
-
-
-
 
   public processMovement(
     character: THREE.Group | null,
@@ -154,8 +143,6 @@ export class InputSystemManager {
       return;
     }
     
-    
-
     // Determine movement speed
     const isRunning = this.gameState.keysPressed[KEY_MAPPINGS.RUN.toLowerCase()];
     const speed = isRunning ? CHARACTER_CONFIG.RUN_SPEED : CHARACTER_CONFIG.SPEED;
@@ -184,7 +171,6 @@ export class InputSystemManager {
       const moveAngle = cameraYaw + joystickAngle - (Math.PI / 2);
 
       const moveDirection = new THREE.Vector3(Math.sin(moveAngle), 0, Math.cos(moveAngle));
-
 
       hasMoved = this.physicsSystem.moveAndRotateCharacter(
         character,

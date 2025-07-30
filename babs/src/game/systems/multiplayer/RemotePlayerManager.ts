@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
+import { SkeletonUtils } from 'three-stdlib';
 import { NetworkPlayer } from '../../network/NetworkManager';
 import { MultiplayerCore } from './MultiplayerCore';
 
@@ -21,6 +22,9 @@ export class RemotePlayerManager {
   private loader: GLTFLoader;
   private textureLoader: THREE.TextureLoader;
   private characterTexture: THREE.Texture;
+
+  // Cache for the loaded GLTF model to avoid loading multiple times
+  private characterModelCache: any = null;
 
   // Player visual components (fallback)
   private playerGeometry: THREE.BoxGeometry;
@@ -61,7 +65,7 @@ export class RemotePlayerManager {
     this.characterTexture = this.textureLoader.load(
       '/assets/models/Textures/colormap.png',
       (texture) => {
-        console.log('✅ Character texture loaded successfully for multiplayer');
+        
       },
       undefined,
       (error) => {
@@ -88,7 +92,7 @@ export class RemotePlayerManager {
       (player) => this.updateRemotePlayer(player),
       (players) => {
         // Update player count callback if needed
-        console.log(`👥 Player list updated: ${players.length} players`);
+        
       }
     );
   }
@@ -96,37 +100,25 @@ export class RemotePlayerManager {
   public createRemotePlayer(player: NetworkPlayer): void {
     const localPlayerId = this.core.getNetworkManager().getLocalPlayerId();
 
-    console.log('🔍 createRemotePlayer called for:', {
-      playerId: player.id,
-      displayName: player.displayName,
-      localPlayerId: localPlayerId,
-      alreadyExists: this.remotePlayers.has(player.id),
-      beingCreated: this.playersBeingCreated.has(player.id),
-      currentRemotePlayers: Array.from(this.remotePlayers.keys())
-    });
-    
-    console.log('🎭 RemotePlayerManager.createRemotePlayer - START');
-
     if (player.id === localPlayerId) {
-      console.log('🚫 Skipping local player:', player.displayName);
+      
       return; // Never create a remote player for ourselves
     }
 
     // Enhanced duplicate prevention - multiple layers of protection
     if (this.remotePlayers.has(player.id)) {
-      console.log('⚠️ Player already exists in tracking, skipping creation:', player.displayName);
+      
       return;
     }
 
     if (this.playersBeingCreated.has(player.id)) {
-      console.log('⚠️ Player already being created, skipping:', player.displayName);
+      
       return;
     }
 
     // CRITICAL: Aggressive duplicate detection and cleanup
     const existingPlayerInScene = this.core.getScene().getObjectByName(`player-${player.id}`);
     if (existingPlayerInScene) {
-      console.log('🧹 CRITICAL: Player object already exists in scene, performing complete cleanup:', player.displayName);
       
       // Remove from scene immediately
       this.core.getScene().remove(existingPlayerInScene);
@@ -157,7 +149,6 @@ export class RemotePlayerManager {
         this.playerCreationTimeouts.delete(player.id);
       }
       
-      console.log('✅ Existing player completely cleaned up, proceeding with fresh creation');
     }
 
     // Additional check: ensure no orphaned objects exist
@@ -169,7 +160,7 @@ export class RemotePlayerManager {
     });
     
     if (orphanedObjects.length > 0) {
-      console.log(`🧹 Found ${orphanedObjects.length} orphaned objects for ${player.id}, cleaning up...`);
+      
       orphanedObjects.forEach(obj => {
         this.core.getScene().remove(obj);
         obj.traverse((subChild: THREE.Object3D) => {
@@ -181,12 +172,11 @@ export class RemotePlayerManager {
       });
     }
 
-    console.log('✅ Creating remote player:', player.displayName, 'at position:', player.position);
     this.playersBeingCreated.add(player.id);
 
     // Set a timeout to prevent players from being stuck in "being created" state
     const timeout = setTimeout(() => {
-      console.warn(`⏰ Player creation timeout for ${player.displayName}, cleaning up`);
+      
       this.playersBeingCreated.delete(player.id);
       this.playerCreationTimeouts.delete(player.id);
       
@@ -210,23 +200,53 @@ export class RemotePlayerManager {
   }
 
   private async loadRemoteCharacterModel(player: NetworkPlayer): Promise<void> {
+    console.log('🔄 Starting to load character model for', player.displayName);
+    console.log('🔧 SkeletonUtils available:', typeof SkeletonUtils?.clone === 'function');
+    
     try {
-      // Load a fresh instance of the character model for each remote player
-      const gltf = await new Promise<any>((resolve, reject) => {
-        this.loader.load(
-          '/assets/models/character-male-f copy.glb',
-          resolve,
-          undefined,
-          reject
-        );
-      });
+      // Use cached model if available, otherwise load it
+      let gltf = this.characterModelCache;
+      
+      if (!gltf) {
+        console.log('📦 Loading GLTF model from file (first time)...');
+        gltf = await new Promise<any>((resolve, reject) => {
+          this.loader.load(
+            '/assets/models/character-male-f copy.glb',
+            (gltf) => {
+              console.log('✅ Successfully loaded character model (caching for future use)');
+              this.characterModelCache = gltf; // Cache it
+              resolve(gltf);
+            },
+            undefined,
+            (error) => {
+              console.error('❌ Failed to load character model:', error);
+              reject(error);
+            }
+          );
+        });
+      } else {
+        console.log('♻️ Using cached GLTF model for', player.displayName);
+      }
+
+      console.log('🔄 Processing model for', player.displayName);
 
       // Create character container similar to local player
       const playerGroup = new THREE.Group();
       playerGroup.name = `player-${player.id}`;
 
-      // Use the scene directly instead of cloning (fresh instance)
-      const character = gltf.scene;
+      // Use SkeletonUtils.clone() for proper GLTF character cloning with animations
+      console.log('🔧 Cloning character using SkeletonUtils for', player.displayName);
+      let character: THREE.Object3D;
+      
+      try {
+        character = SkeletonUtils.clone(gltf.scene);
+        console.log('✅ Character cloned successfully using SkeletonUtils for', player.displayName, character);
+      } catch (error) {
+        console.error('❌ SkeletonUtils.clone failed, falling back to basic clone:', error);
+        character = gltf.scene.clone();
+        console.log('⚠️ Using fallback clone method for', player.displayName);
+      }
+      
       character.position.set(0, 0, 0);
       character.scale.set(1.3, 1.3, 1.3);
       character.visible = false; // Start invisible to prevent T-pose flash
@@ -236,15 +256,15 @@ export class RemotePlayerManager {
       character.traverse((child: any) => {
         if (child.isMesh) {
           const mesh = child as THREE.Mesh;
-          mesh.castShadow = true;
-          mesh.receiveShadow = true;
+          mesh.castShadow = false; // Disabled like in local player
+          mesh.receiveShadow = false; // Disabled like in local player
           mesh.visible = true;
           mesh.frustumCulled = true;
           mesh.matrixAutoUpdate = true;
 
-          // Create a fresh material instance for each remote player
+          // Create a fresh material instance for each remote player (exactly like local player)
           const characterMaterial = new THREE.MeshToonMaterial({
-            map: this.characterTexture.clone(), // Clone the texture
+            map: this.characterTexture, // Use the original texture, don't clone
             transparent: false,
             opacity: 1.0,
             side: THREE.FrontSide,
@@ -258,21 +278,25 @@ export class RemotePlayerManager {
       playerGroup.add(character);
 
       // Initialize animations for this remote player BEFORE making visible
-      const animationsReady = await this.initializeRemotePlayerAnimations(player.id, character, gltf);
-      
-      // Only make character visible after animations are properly initialized
-      if (animationsReady) {
-        // Longer delay to ensure animation is fully initialized and T-pose is avoided
+      try {
+        const animationsReady = await this.initializeRemotePlayerAnimations(player.id, character as THREE.Group, gltf);
+        
+        // Make character visible regardless of animation success
         setTimeout(() => {
           character.visible = true;
-          console.log(`🎭 Character ${player.displayName} made visible after animation setup`);
-        }, 300);
-      } else {
-        // Fallback: make visible anyway after a longer delay
+          console.log('✅ Remote player character made visible for', player.displayName);
+        }, 200);
+        
+        if (!animationsReady) {
+          console.warn('⚠️ Animations not ready for', player.displayName, ', but character is still visible');
+        }
+      } catch (animError) {
+        console.error('❌ Animation initialization failed for', player.displayName, ':', animError);
+        // Still make the character visible even if animations fail
         setTimeout(() => {
           character.visible = true;
-          console.log(`⚠️ Character ${player.displayName} made visible (fallback)`);
-        }, 1000);
+          console.log('✅ Remote player character made visible (no animations) for', player.displayName);
+        }, 200);
       }
 
       // Create name label
@@ -305,6 +329,14 @@ export class RemotePlayerManager {
       this.remotePlayers.set(player.id, playerGroup);
       this.playersBeingCreated.delete(player.id);
       
+      console.log('✅ Remote player', player.displayName, 'added to scene successfully');
+      console.log('🔍 Player group details:', {
+        position: playerGroup.position,
+        childrenCount: playerGroup.children.length,
+        characterVisible: character.visible,
+        inScene: this.core.getScene().children.includes(playerGroup)
+      });
+      
       // Clear the creation timeout
       const timeout = this.playerCreationTimeouts.get(player.id);
       if (timeout) {
@@ -319,10 +351,13 @@ export class RemotePlayerManager {
         lastUpdate: Date.now()
       });
 
-      console.log(`✅ Remote player ${player.displayName} created with character model`);
-
     } catch (error) {
-      console.warn(`⚠️ Failed to load character model for ${player.displayName}, using fallback:`, error);
+      console.error('❌ Failed to create remote player mesh for', player.displayName, ':', error);
+      console.error('❌ Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
       // Ensure we clean up the playersBeingCreated set even on error
       this.playersBeingCreated.delete(player.id);
       this.createFallbackRemotePlayer(player);
@@ -400,17 +435,14 @@ export class RemotePlayerManager {
       }
     }, 300);
 
-    console.log(`✅ Remote player ${player.displayName} created with fallback geometry`);
   }
 
   public removeRemotePlayer(playerId: string): void {
-    console.log('👋 Removing remote player:', playerId);
-
+    
     const playerGroup = this.remotePlayers.get(playerId);
     if (playerGroup) {
       // More thorough cleanup of the player group
-      console.log(`🧹 Cleaning up player group for ${playerId}`);
-
+      
       // Remove all children from the group first
       while (playerGroup.children.length > 0) {
         const child = playerGroup.children[0];
@@ -461,10 +493,8 @@ export class RemotePlayerManager {
         this.playerMaterials.delete(playerId);
       }
 
-      console.log(`✅ Successfully removed player ${playerId}. Remaining players: ${this.remotePlayers.size}`);
     } else {
-      console.warn(`⚠️ Attempted to remove non-existent player: ${playerId}`);
-
+      
       // Still clean up any orphaned data
       this.playerTargets.delete(playerId);
       this.playersBeingCreated.delete(playerId);
@@ -516,7 +546,7 @@ export class RemotePlayerManager {
       // AGGRESSIVE: Force cleanup of any orphaned objects for this player
       const playerGroup = this.core.getScene().getObjectByName(`player-${player.id}`);
       if (playerGroup) {
-        console.log(`🧹 Found orphaned player object during update: ${player.id}`);
+        
         this.core.getScene().remove(playerGroup);
         
         // Dispose of all materials and geometries
@@ -543,12 +573,6 @@ export class RemotePlayerManager {
   }
 
   private handleCurrentPlayersInternal(players: NetworkPlayer[]): void {
-    console.log('👥 handleCurrentPlayers called with:', {
-      playersCount: players.length,
-      playerNames: players.map(p => p.displayName),
-      currentRemotePlayers: Array.from(this.remotePlayers.keys()),
-      playersBeingCreated: Array.from(this.playersBeingCreated)
-    });
     
     const localPlayerId = this.core.getNetworkManager().getLocalPlayerId();
 
@@ -572,7 +596,7 @@ export class RemotePlayerManager {
     for (const sceneObject of allSceneObjects) {
       const playerId = sceneObject.name.replace('player-', '');
       if (playerId !== localPlayerId && !serverPlayerIds.has(playerId)) {
-        console.log('🧹 AGGRESSIVE: Removing ghost character from scene:', playerId);
+        
         this.core.getScene().remove(sceneObject);
         
         // Dispose of all materials and geometries
@@ -600,7 +624,7 @@ export class RemotePlayerManager {
     // Remove players that are no longer on the server
     for (const existingPlayerId of this.remotePlayers.keys()) {
       if (existingPlayerId !== localPlayerId && !serverPlayerIds.has(existingPlayerId)) {
-        console.log('➖ Removing player no longer on server:', existingPlayerId);
+        
         this.removeRemotePlayer(existingPlayerId);
       }
     }
@@ -610,7 +634,7 @@ export class RemotePlayerManager {
     for (const [playerId, target] of this.playerTargets.entries()) {
       const timeSinceUpdate = now - target.lastUpdate;
       if (timeSinceUpdate > staleDataThreshold && playerId !== localPlayerId) {
-        console.log(`🧹 Removing player with stale data (${Math.floor(timeSinceUpdate/1000)}s old):`, playerId);
+        
         this.removeRemotePlayer(playerId);
       }
     }
@@ -623,11 +647,10 @@ export class RemotePlayerManager {
         const playerInScene = !!this.core.getScene().getObjectByName(`player-${player.id}`);
         
         if (!playerExists && !playerBeingCreated && !playerInScene) {
-          console.log('➕ Adding new player from server list:', player.displayName);
+          
           this.createRemotePlayer(player);
         } else if (playerInScene && (playerExists || playerBeingCreated)) {
           // Player exists in tracking, ensure consistency
-          console.log('✅ Player consistency check passed:', player.displayName);
           
           // Update lastUpdate timestamp to prevent stale data removal
           const target = this.playerTargets.get(player.id);
@@ -636,7 +659,7 @@ export class RemotePlayerManager {
           }
         } else if (playerInScene && !playerExists && !playerBeingCreated) {
           // This should be caught by the ghost character removal above, but double-check
-          console.log('🔧 Player in scene but not tracked, re-adding to tracking:', player.displayName);
+          
           const playerGroup = this.core.getScene().getObjectByName(`player-${player.id}`) as THREE.Group;
           if (playerGroup) {
             this.remotePlayers.set(player.id, playerGroup);
@@ -651,7 +674,6 @@ export class RemotePlayerManager {
       }
     }
 
-    console.log('✅ handleCurrentPlayers completed. Remote players:', this.remotePlayers.size);
   }
 
   public getRemotePlayerCount(): number {
@@ -744,7 +766,7 @@ export class RemotePlayerManager {
       const animationClips = gltf.animations;
 
       if (!animationClips || animationClips.length === 0) {
-        console.warn(`⚠️ No animations found for player ${playerId}`);
+        
         return false;
       }
 
@@ -801,10 +823,9 @@ export class RemotePlayerManager {
         character.updateMatrix();
         character.updateMatrixWorld(true);
         
-        console.log(`✅ Initialized animations for remote player ${playerId} with idle animation active`);
         return true;
       } else {
-        console.warn(`⚠️ No idle animation found for player ${playerId}`);
+        
         return false;
       }
     } catch (error) {
@@ -842,10 +863,8 @@ export class RemotePlayerManager {
     return colors[Math.abs(hash) % colors.length];
   }
 
-
-
   public forceCleanupAllRemotePlayers(): void {
-    console.log('🧹 Force cleaning up all remote players...');
+    
     const playerIds = Array.from(this.remotePlayers.keys());
 
     playerIds.forEach(playerId => {
@@ -863,7 +882,6 @@ export class RemotePlayerManager {
     this.playerCreationTimeouts.forEach(timeout => clearTimeout(timeout));
     this.playerCreationTimeouts.clear();
 
-    console.log('✅ All remote players forcefully cleaned up');
   }
 
   public updateAnimations(deltaTime: number): void {
@@ -909,7 +927,6 @@ export class RemotePlayerManager {
           animationData.actions.current = targetAnimation;
           animationData.lastAnimationState = animationState;
 
-          console.log(`🎭 Player ${playerId} animation changed to: ${animationState}`);
         }
 
         // Update last position for next frame
@@ -968,7 +985,6 @@ export class RemotePlayerManager {
       actions.current = targetAnimation;
       animationData.lastAnimationState = animationName.toLowerCase();
 
-      console.log(`🎭 Player ${playerId} forced animation: ${animationName}`);
     }
   }
 
@@ -992,7 +1008,7 @@ export class RemotePlayerManager {
     for (const [playerId, target] of playerTargets.entries()) {
       const timeSinceUpdate = now - target.lastUpdate;
       if (timeSinceUpdate > staleThreshold) {
-        console.log(`🧹 Removing stale player (no update for ${Math.floor(timeSinceUpdate/1000)}s):`, playerId);
+        
         this.removeRemotePlayer(playerId);
       }
     }
@@ -1040,8 +1056,7 @@ export class RemotePlayerManager {
   }
 
   public dispose(): void {
-    console.log('🧹 Disposing remote player manager...');
-
+    
     // Clean up all remote players
     this.forceCleanupAllRemotePlayers();
 
@@ -1062,7 +1077,5 @@ export class RemotePlayerManager {
       clearTimeout(this.handleCurrentPlayersTimeout);
       this.handleCurrentPlayersTimeout = null;
     }
-
-    console.log('✅ Remote player manager disposed');
   }
 }
