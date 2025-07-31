@@ -151,4 +151,31 @@
     top: 60px !important;
     left: 5px !important;
   }
+  
+  .mobile-leaderboard-button {
+    top: 10px !important;
+    right: 5px !important;
+    left: auto !important;
+  }
+}
+
+/* Leaderboard slide-in animation */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Mobile styles for leaderboard button */
+@media (max-width: 768px) {
+  .mobile-leaderboard-button {
+    top: 10px !important; /* Aligned with top */
+    right: 10px !important; /* Right side of screen */
+    left: auto !important; /* Override any left positioning */
+  }
 }

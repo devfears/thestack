@@ -33,6 +33,12 @@ function App() {
   
   // Camera state
   const [cameraFollowEnabled, setCameraFollowEnabled] = useState(true);
+  
+  // Leaderboard state
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
+  const [playerStats, setPlayerStats] = useState<any>(null);
+  
 
   
   // Listen for multiplayer chat messages
@@ -81,6 +87,38 @@ function App() {
       window.removeEventListener('multiplayer-chat', handleMultiplayerChat as EventListener);
     };
   }, [user, showChat]);
+
+  // Fetch leaderboard data when leaderboard is opened
+  useEffect(() => {
+    if (showLeaderboard && leaderboardData.length === 0) {
+      fetchLeaderboardData();
+      if (user?.fid) {
+        fetchPlayerStats(user.fid);
+      }
+    }
+  }, [showLeaderboard, user?.fid]);
+
+  const fetchLeaderboardData = async () => {
+    try {
+      const response = await fetch('http://localhost:3002/api/leaderboard/global?limit=50');
+      const data = await response.json();
+      setLeaderboardData(data);
+    } catch (error) {
+      console.error('Failed to fetch leaderboard data:', error);
+    }
+  };
+
+  const fetchPlayerStats = async (fid: number) => {
+    try {
+      const response = await fetch(`http://localhost:3002/api/player/${fid}/stats`);
+      if (response.ok) {
+        const data = await response.json();
+        setPlayerStats(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch player stats:', error);
+    }
+  };
 
   useEffect(() => {
     const authenticateUser = async () => {
@@ -188,6 +226,7 @@ function App() {
     }
   };
 
+
   const handleToggleCamera = () => {
     const gameManager = (window as any).gameManager;
     if (gameManager) {
@@ -201,21 +240,28 @@ function App() {
     }
   };
 
-  // Handle nametag visibility based on game and chat state
+  // Handle nametag and layer UI visibility based on game and chat/leaderboard state
   useEffect(() => {
     const gameManager = (window as any).gameManager;
     if (gameManager) {
-      // For local player: consider both game/chat state AND camera state
-      const baseVisibility = gameStarted && !showChat;
+      // For local player: consider both game/chat/leaderboard state AND camera state
+      const baseVisibility = gameStarted && !showChat && !showLeaderboard;
       const localNametagVisible = baseVisibility && cameraFollowEnabled; // Hide when in free camera mode
       gameManager.setLocalNametagVisible(localNametagVisible);
       
-      // For remote players: only consider game/chat state (not affected by camera mode)
+      // For remote players: only consider game/chat/leaderboard state (not affected by camera mode)
       const remoteNametagVisible = baseVisibility;
       // Use the correct method to set remote player nametag visibility
       gameManager.setRemoteNametagVisible(remoteNametagVisible);
+      
+      // Handle layer UI visibility - hide when chat or leaderboard is open
+      if (showChat || showLeaderboard) {
+        gameManager.hideLayerProgressUI();
+      } else if (gameStarted) {
+        gameManager.showLayerProgressUI();
+      }
     }
-  }, [gameStarted, showChat, cameraFollowEnabled]);
+  }, [gameStarted, showChat, showLeaderboard, cameraFollowEnabled]);
 
 
 
@@ -439,7 +485,7 @@ function App() {
                   border: '3px solid #ffffff',
                   cursor: 'pointer',
                   fontSize: '16px',
-                  display: showChat ? 'none' : 'flex', // Hide when chat is open
+                  display: showChat || showLeaderboard ? 'none' : 'flex', // Hide when chat or leaderboard is open
                   alignItems: 'center',
                   justifyContent: 'center',
                   boxShadow: '4px 4px 0px #2d3436, 8px 8px 0px rgba(0,0,0,0.3)',
@@ -454,6 +500,37 @@ function App() {
                 📷
               </button>
 
+              {/* Leaderboard button - positioned to the right of Layer UI */}
+              <button
+                onClick={() => setShowLeaderboard(!showLeaderboard)}
+                className="mobile-control-button mobile-leaderboard-button"
+                style={{
+                  position: 'fixed',
+                  top: '10px', // Top of screen, aligned with Layer UI
+                  right: '10px', // Right side of screen
+                  width: '50px',
+                  height: '50px',
+                  borderRadius: '0px', // Remove rounded corners for pixelated look
+                  backgroundColor: '#f39c12',
+                  color: 'white',
+                  border: '3px solid #ffffff',
+                  cursor: 'pointer',
+                  fontSize: '16px',
+                  display: showChat || showLeaderboard ? 'none' : 'flex', // Hide when chat or leaderboard is open
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '4px 4px 0px #2d3436, 8px 8px 0px rgba(0,0,0,0.3)',
+                  zIndex: 4000, // Below layer UI to avoid conflicts
+                  fontFamily: '"Press Start 2P", monospace',
+                  transition: 'all 0.2s ease',
+                  imageRendering: 'pixelated',
+                  textShadow: '2px 2px 0px #000000'
+                }}
+                title="View Leaderboard"
+              >
+                🏆
+              </button>
+
               
               {/* ChatBox */}
               {showChat && (
@@ -463,6 +540,305 @@ function App() {
                   onSendMessage={handleSendMessage}
                   onClose={() => setShowChat(false)}
                 />
+              )}
+
+              {/* Leaderboard Full Page Overlay */}
+              {showLeaderboard && (
+                <div
+                  style={{
+                    position: 'fixed',
+                    top: '0',
+                    left: '0',
+                    right: '0',
+                    bottom: '0',
+                    width: '100vw',
+                    height: '100vh',
+                    backgroundColor: '#181818',
+                    color: 'white',
+                    zIndex: 10000,
+                    fontFamily: '"Press Start 2P", monospace',
+                    overflow: 'auto',
+                    display: 'flex',
+                    flexDirection: 'column'
+                  }}
+                >
+                  {/* Header */}
+                  <div
+                    style={{
+                      backgroundColor: '#e74c3c',
+                      padding: 'clamp(15px, 4vw, 30px)',
+                      borderBottom: '4px solid #ffffff',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: '10px'
+                    }}
+                  >
+                    <div>
+                      <h1 style={{
+                        fontSize: 'clamp(14px, 4vw, 24px)',
+                        margin: '0 0 5px 0',
+                        textShadow: '3px 3px 0px #000000'
+                      }}>
+                        🏆 THE STACK LEADERBOARD
+                      </h1>
+                      <div style={{
+                        fontSize: 'clamp(8px, 2vw, 12px)',
+                        color: '#ffcccb'
+                      }}>
+                        Top builders in the community tower
+                      </div>
+                    </div>
+                    
+                    <button
+                      onClick={() => setShowLeaderboard(false)}
+                      style={{
+                        background: '#2c3e50',
+                        border: '3px solid #ffffff',
+                        color: 'white',
+                        cursor: 'pointer',
+                        fontSize: 'clamp(8px, 2vw, 12px)',
+                        padding: 'clamp(8px, 2vw, 12px) clamp(12px, 3vw, 16px)',
+                        fontFamily: '"Press Start 2P", monospace',
+                        textShadow: '2px 2px 0px #000000',
+                        boxShadow: '4px 4px 0px #000000',
+                        transition: 'all 0.1s ease'
+                      }}
+                      onMouseDown={(e) => {
+                        e.currentTarget.style.transform = 'translate(2px, 2px)';
+                        e.currentTarget.style.boxShadow = '2px 2px 0px #000000';
+                      }}
+                      onMouseUp={(e) => {
+                        e.currentTarget.style.transform = 'translate(0px, 0px)';
+                        e.currentTarget.style.boxShadow = '4px 4px 0px #000000';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translate(0px, 0px)';
+                        e.currentTarget.style.boxShadow = '4px 4px 0px #000000';
+                      }}
+                    >
+                      ← BACK TO GAME
+                    </button>
+                  </div>
+
+                  {/* Content */}
+                  <div
+                    style={{
+                      flex: 1,
+                      overflow: 'auto'
+                    }}
+                  >
+                    <div style={{
+                      maxWidth: '800px',
+                      margin: '0 auto',
+                      padding: 'clamp(15px, 4vw, 30px)'
+                    }}>
+                      {/* Personal Stats Card */}
+                      {playerStats ? (
+                        <div style={{
+                          backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                          border: '3px solid #3498db',
+                          padding: 'clamp(15px, 4vw, 25px)',
+                          marginBottom: 'clamp(20px, 5vw, 30px)',
+                          textAlign: 'center',
+                          boxShadow: '4px 4px 0px rgba(0,0,0,0.5)',
+                        }}>
+                          <div style={{
+                            fontSize: 'clamp(10px, 3vw, 16px)',
+                            marginBottom: '15px',
+                            color: '#3498db',
+                            textShadow: '2px 2px 0px #000000'
+                          }}>
+                            🎮 YOUR BUILDER STATS
+                          </div>
+                          <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+                            gap: 'clamp(10px, 3vw, 20px)',
+                            fontSize: 'clamp(8px, 2vw, 12px)'
+                          }}>
+                            <div>
+                              <div style={{ color: '#f39c12', marginBottom: '5px' }}>RANK</div>
+                              <div style={{ fontSize: 'clamp(12px, 3vw, 18px)' }}>
+                                #{playerStats.rank_position || 'Unranked'}
+                              </div>
+                            </div>
+                            <div>
+                              <div style={{ color: '#e74c3c', marginBottom: '5px' }}>BRICKS</div>
+                              <div style={{ fontSize: 'clamp(12px, 3vw, 18px)' }}>
+                                {playerStats.bricks_placed.toLocaleString()}
+                              </div>
+                            </div>
+                            <div>
+                              <div style={{ color: '#e67e22', marginBottom: '5px' }}>STREAK</div>
+                              <div style={{ fontSize: 'clamp(12px, 3vw, 18px)' }}>
+                                {playerStats.current_streak} 🔥
+                              </div>
+                            </div>
+                            <div>
+                              <div style={{ color: '#9b59b6', marginBottom: '5px' }}>SESSIONS</div>
+                              <div style={{ fontSize: 'clamp(12px, 3vw, 18px)' }}>
+                                {playerStats.building_sessions || 0}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ) : user ? (
+                        <div style={{
+                          backgroundColor: 'rgba(241, 196, 15, 0.2)',
+                          border: '3px solid #f1c40f',
+                          padding: 'clamp(15px, 4vw, 25px)',
+                          marginBottom: 'clamp(20px, 5vw, 30px)',
+                          textAlign: 'center',
+                          boxShadow: '4px 4px 0px rgba(0,0,0,0.5)'
+                        }}>
+                          <div style={{
+                            fontSize: 'clamp(10px, 3vw, 14px)',
+                            color: '#f1c40f',
+                            textShadow: '2px 2px 0px #000000'
+                          }}>
+                            🧱 Place your first brick to join the leaderboard! 🧱
+                          </div>
+                        </div>
+                      ) : null}
+
+                      {/* Leaderboard */}
+                      <div style={{
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        border: '3px solid #ffffff',
+                        borderRadius: '0px',
+                        overflow: 'hidden',
+                        boxShadow: '6px 6px 0px rgba(0,0,0,0.5)'
+                      }}>
+                        {leaderboardData.length === 0 ? (
+                          <div style={{
+                            padding: '40px',
+                            textAlign: 'center',
+                            fontSize: 'clamp(8px, 2vw, 12px)',
+                            color: '#7f8c8d'
+                          }}>
+                            Loading leaderboard... 🎮
+                          </div>
+                        ) : (
+                          <div style={{ overflow: 'auto', maxHeight: '50vh' }}>
+                            {leaderboardData.map((player, index) => (
+                              <div
+                                key={player.fid}
+                                style={{
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center',
+                                  padding: 'clamp(12px, 3vw, 20px)',
+                                  borderBottom: index < leaderboardData.length - 1 ? '2px solid rgba(255, 255, 255, 0.2)' : 'none',
+                                  backgroundColor: index < 3 ? 
+                                    (index === 0 ? 'rgba(255, 215, 0, 0.1)' : // Gold
+                                     index === 1 ? 'rgba(192, 192, 192, 0.1)' : // Silver  
+                                     'rgba(205, 127, 50, 0.1)') : // Bronze
+                                    'transparent',
+                                  fontSize: 'clamp(8px, 2vw, 12px)',
+                                  minHeight: 'clamp(50px, 12vw, 80px)'
+                                }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', flex: 1, gap: 'clamp(10px, 3vw, 20px)' }}>
+                                  {/* Rank */}
+                                  <div style={{
+                                    fontSize: 'clamp(14px, 4vw, 24px)',
+                                    fontWeight: 'bold',
+                                    minWidth: 'clamp(40px, 10vw, 60px)',
+                                    color: index === 0 ? '#f1c40f' : 
+                                           index === 1 ? '#95a5a6' : 
+                                           index === 2 ? '#cd7f32' : 'white',
+                                    textShadow: '2px 2px 0px #000000'
+                                  }}>
+                                    {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
+                                  </div>
+
+                                  {/* Profile Picture */}
+                                  {player.pfp_url && (
+                                    <img
+                                      src={player.pfp_url}
+                                      alt={`${player.display_name} avatar`}
+                                      style={{
+                                        width: 'clamp(30px, 8vw, 50px)',
+                                        height: 'clamp(30px, 8vw, 50px)',
+                                        borderRadius: '0px',
+                                        border: '2px solid #ffffff',
+                                        display: 'block'
+                                      }}
+                                      onError={(e) => {
+                                        e.currentTarget.style.display = 'none';
+                                      }}
+                                    />
+                                  )}
+
+                                  {/* Name */}
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{
+                                      fontSize: 'clamp(10px, 2.5vw, 14px)',
+                                      fontWeight: 'bold',
+                                      textOverflow: 'ellipsis',
+                                      overflow: 'hidden',
+                                      whiteSpace: 'nowrap',
+                                      marginBottom: '2px'
+                                    }}>
+                                      {player.display_name}
+                                    </div>
+                                    <div style={{
+                                      fontSize: 'clamp(7px, 1.8vw, 10px)',
+                                      color: '#7f8c8d',
+                                      textOverflow: 'ellipsis',
+                                      overflow: 'hidden',
+                                      whiteSpace: 'nowrap'
+                                    }}>
+                                      @{player.username}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Stats */}
+                                <div style={{
+                                  textAlign: 'right',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  alignItems: 'flex-end',
+                                  gap: '4px'
+                                }}>
+                                  <div style={{
+                                    fontSize: 'clamp(10px, 2.5vw, 16px)',
+                                    fontWeight: 'bold'
+                                  }}>
+                                    {player.bricks_placed.toLocaleString()} 🧱
+                                  </div>
+                                  {player.current_streak > 0 && (
+                                    <div style={{
+                                      fontSize: 'clamp(7px, 2vw, 10px)',
+                                      color: '#e67e22'
+                                    }}>
+                                      {player.current_streak}🔥
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Footer */}
+                      <div style={{
+                        textAlign: 'center',
+                        marginTop: 'clamp(20px, 5vw, 40px)',
+                        fontSize: 'clamp(8px, 2vw, 12px)',
+                        color: '#7f8c8d',
+                        borderTop: '2px solid rgba(255, 255, 255, 0.2)',
+                        paddingTop: '20px'
+                      }}>
+                        🏗️ Keep building to climb the ranks! Every brick counts! 🏗️
+                      </div>
+                    </div>
+                  </div>
+                </div>
               )}
             </>
           )}
