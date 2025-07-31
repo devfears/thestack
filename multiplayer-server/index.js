@@ -183,14 +183,15 @@ io.on('connection', (socket) => {
     console.log(`Player joined: ${playerData.username} (${socket.id})`);
     console.log(`Total players now: ${players.size}`);
     
-    // Update player in database
+    // Update player in database using Supabase
     try {
-      await upsertPlayer({
-        fid: playerData.fid,
-        username: playerData.username,
-        displayName: playerData.displayName,
-        pfpUrl: playerData.pfpUrl
-      });
+      await updatePlayerBrickStats(
+        playerData.fid, 
+        playerData.username, 
+        playerData.displayName, 
+        playerData.pfpUrl, 
+        0 // 0 bricks for initial connection
+      );
       console.log(`📊 Player ${playerData.displayName} updated in database`);
     } catch (error) {
       console.error('💥 Failed to update player in database:', error);

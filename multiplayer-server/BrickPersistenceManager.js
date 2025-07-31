@@ -158,6 +158,27 @@ class BrickPersistenceManager {
   }
 
   /**
+   * Get current tower state
+   */
+  getTowerState() {
+    return this.gameState;
+  }
+
+  /**
+   * Clear all bricks from tower
+   */
+  clearTower() {
+    const clearedCount = this.gameState.tower.length;
+    this.gameState.tower = [];
+    this.gameState.currentLayer = 0;
+    this.gameState.lastUpdated = Date.now();
+    this.brickPositions.clear();
+    this.saveTowerState();
+    console.log(`🧹 Cleared tower: removed ${clearedCount} bricks`);
+    return clearedCount;
+  }
+
+  /**
    * Force cleanup - remove invalid bricks
    */
   cleanup() {
