@@ -3,7 +3,15 @@ const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors');
 const BrickPersistenceManager = require('./BrickPersistenceManager');
-const { initializeDatabase, upsertPlayer, updatePlayerStats, getLeaderboard, getDailyLeaderboard, getPlayerStats, testConnection } = require('./database');
+const { 
+  getGlobalLeaderboard, 
+  getPlayerStats, 
+  updatePlayerBrickStats, 
+  getDailyLeaderboard, 
+  getPlayerAchievements, 
+  checkAndUnlockAchievements,
+  testConnection 
+} = require('./supabaseClient');
 
 const app = express();
 const server = http.createServer(app);
@@ -83,7 +91,7 @@ app.use('/api', (req, res, next) => {
 app.get('/api/leaderboard/global', async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 50;
-    const leaderboard = await getLeaderboard(limit);
+    const leaderboard = await getGlobalLeaderboard(limit);
     res.json(leaderboard);
   } catch (error) {
     console.error('Error getting global leaderboard:', error);
@@ -114,6 +122,18 @@ app.get('/api/player/:fid/stats', async (req, res) => {
   } catch (error) {
     console.error('Error getting player stats:', error);
     res.status(500).json({ error: 'Failed to get player stats' });
+  }
+});
+
+// Player achievements endpoint
+app.get('/api/player/:fid/achievements', async (req, res) => {
+  try {
+    const fid = parseInt(req.params.fid);
+    const achievements = await getPlayerAchievements(fid);
+    res.json(achievements);
+  } catch (error) {
+    console.error('Error getting player achievements:', error);
+    res.status(500).json({ error: 'Failed to get player achievements' });
   }
 });
 
@@ -187,8 +207,21 @@ io.on('connection', (socket) => {
         
         // Update player stats in database
         try {
-          await updatePlayerStats(player.fid, true);
+          await updatePlayerBrickStats(
+            player.fid, 
+            player.username, 
+            player.displayName, 
+            player.pfpUrl, 
+            1
+          );
           console.log(`📊 Updated database stats for ${player.displayName}`);
+          
+          // Check for new achievements
+          const newAchievements = await checkAndUnlockAchievements(player.fid);
+          if (newAchievements.length > 0) {
+            socket.emit('achievements-unlocked', newAchievements);
+            console.log(`🏆 ${newAchievements.length} new achievements unlocked for ${player.displayName}`);
+          }
         } catch (error) {
           console.error('💥 Failed to update player stats in database:', error);
         }
