@@ -100,7 +100,8 @@ function App() {
 
   const fetchLeaderboardData = async () => {
     try {
-      const response = await fetch('http://localhost:3002/api/leaderboard/global?limit=50');
+      const serverUrl = import.meta.env.VITE_MULTIPLAYER_SERVER_URL || 'http://localhost:3002';
+      const response = await fetch(`${serverUrl}/api/leaderboard/global?limit=50`);
       const data = await response.json();
       setLeaderboardData(data);
     } catch (error) {
@@ -110,7 +111,8 @@ function App() {
 
   const fetchPlayerStats = async (fid: number) => {
     try {
-      const response = await fetch(`http://localhost:3002/api/player/${fid}/stats`);
+      const serverUrl = import.meta.env.VITE_MULTIPLAYER_SERVER_URL || 'http://localhost:3002';
+      const response = await fetch(`${serverUrl}/api/player/${fid}/stats`);
       if (response.ok) {
         const data = await response.json();
         setPlayerStats(data);
