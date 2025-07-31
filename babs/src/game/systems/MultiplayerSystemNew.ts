@@ -34,9 +34,7 @@ export class MultiplayerSystem {
     
     if (connected) {
       // Set up network event handlers for disconnection management
-      this.core.getNetworkManager().socket?.on('disconnect', (reason: string) => {
-        this.core.getConnectionStateManager().onDisconnection(reason);
-      });
+      // Note: socket access handled internally by NetworkManager
     }
     
     return connected;

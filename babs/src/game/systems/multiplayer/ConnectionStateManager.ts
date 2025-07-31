@@ -93,7 +93,6 @@ export class ConnectionStateManager {
     // Don't immediately reconnect on manual disconnects or page unload
     if (reason === 'io client disconnect' || reason === 'transport close') {
       this.setConnectionState('disconnected');
-      this.clearStoredConnection();
       return;
     }
 
@@ -249,7 +248,6 @@ export class ConnectionStateManager {
   public dispose(): void {
     this.clearReconnectTimer();
     this.stopHeartbeat();
-    this.clearStoredConnection();
     
     // Remove event listeners
     document.removeEventListener('visibilitychange', () => {});

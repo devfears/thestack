@@ -146,7 +146,7 @@ export class InteractionSystem {
     
     // Only allow pickup if not already carrying a brick
     if (!this.gameState.isCarryingBrick) {
-      const success = this.gameManager.getBuildingSystem().pickupBrick();
+      const success = this.gameManager.getBrickSystem().pickupBrick();
       if (success) {
         
       } else {
@@ -160,7 +160,7 @@ export class InteractionSystem {
   private handleBuildingPlatformInteraction(): void {
     // Only allow placement if carrying a brick
     if (this.gameState.isCarryingBrick) {
-      const success = this.gameManager.getBuildingSystem().placeBrick();
+      const success = this.gameManager.getBrickSystem().placeBrick();
       if (success) {
   
       } else {

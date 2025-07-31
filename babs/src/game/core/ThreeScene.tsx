@@ -100,25 +100,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
         actions.debugMultiplayer();
       }
       
-      // Debug: Toggle remote player debug boxes
-      if (event.code === 'KeyR' && event.shiftKey) {
-        actions.toggleRemotePlayerDebug();
-      }
-      
-      // Debug: Force cleanup all remote players
-      if (event.code === 'KeyX' && event.shiftKey) {
-        actions.forceCleanupRemotePlayers();
-      }
-      
-      // Debug: Show remote players debug info
-      if (event.code === 'KeyD' && event.shiftKey) {
-        actions.debugRemotePlayersInfo();
-      }
-      
-      // Debug: Request force sync
-      if (event.code === 'KeyS' && event.shiftKey) {
-        actions.requestForceSync();
-      }
+      // Additional debug methods would be added here if needed
     };
 
     window.addEventListener('keydown', handleKeyPress);

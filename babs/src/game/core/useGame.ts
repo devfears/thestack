@@ -21,10 +21,6 @@ export const useGame = (user: UserProfile | null, onRemotePlayerCountChange: (co
         // Expose game manager globally for debugging
         (window as any).gameManager = gameManagerRef.current;
         (window as any).debugMultiplayer = () => gameManagerRef.current?.debugMultiplayer();
-        (window as any).toggleRemotePlayerDebug = () => gameManagerRef.current?.toggleRemotePlayerDebug();
-        (window as any).forceRemotePlayerFallback = () => gameManagerRef.current?.forceRemotePlayerFallback();
-        (window as any).startUpdateFrequencyMonitor = () => gameManagerRef.current?.startUpdateFrequencyMonitor();
-        (window as any).stopUpdateFrequencyMonitor = () => gameManagerRef.current?.stopUpdateFrequencyMonitor();
         
         // Wait for the game to be fully initialized
         const checkInitialization = () => {
@@ -64,7 +60,8 @@ export const useGame = (user: UserProfile | null, onRemotePlayerCountChange: (co
     },
     
     pickupBrick: () => {
-      return gameManagerRef.current?.pickupBrick() || false;
+      gameManagerRef.current?.pickupBrick();
+      return true;
     },
     
     placeBrick: () => {
@@ -82,8 +79,8 @@ export const useGame = (user: UserProfile | null, onRemotePlayerCountChange: (co
       gameManagerRef.current?.setNametagVisible(visible);
     },
     
-    getBuildingSystem: () => {
-      return gameManagerRef.current?.getBuildingSystem();
+    getBrickSystem: () => {
+      return gameManagerRef.current?.getBrickSystem();
     },
     
     // Layer progress methods
@@ -121,34 +118,6 @@ export const useGame = (user: UserProfile | null, onRemotePlayerCountChange: (co
     // Debug methods
     debugMultiplayer: () => {
       gameManagerRef.current?.debugMultiplayer();
-    },
-    
-    toggleRemotePlayerDebug: () => {
-      gameManagerRef.current?.toggleRemotePlayerDebug();
-    },
-    
-    forceRemotePlayerFallback: () => {
-      gameManagerRef.current?.forceRemotePlayerFallback();
-    },
-    
-    startUpdateFrequencyMonitor: () => {
-      gameManagerRef.current?.startUpdateFrequencyMonitor();
-    },
-    
-    stopUpdateFrequencyMonitor: () => {
-      gameManagerRef.current?.stopUpdateFrequencyMonitor();
-    },
-    
-    forceCleanupRemotePlayers: () => {
-      gameManagerRef.current?.forceCleanupRemotePlayers();
-    },
-    
-    debugRemotePlayersInfo: () => {
-      gameManagerRef.current?.debugRemotePlayersInfo();
-    },
-    
-    requestForceSync: () => {
-      gameManagerRef.current?.requestForceSync();
     }
   }), []); // Create actions object once to prevent re-renders
 
