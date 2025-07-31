@@ -18,7 +18,12 @@ const server = http.createServer(app);
 
 const io = socketIo(server, {
   cors: {
-    origin: ["http://localhost:5173", "http://localhost:4173", "http://localhost:5174"],
+    origin: [
+      "http://localhost:5173", 
+      "http://localhost:4173", 
+      "http://localhost:5174",
+      "https://thestackgame.netlify.app"
+    ],
     methods: ["GET", "POST"],
     credentials: true
   },
@@ -38,7 +43,8 @@ app.use(cors({
       'http://localhost:4173', 
       'http://localhost:5174',
       'http://127.0.0.1:5173',
-      'http://127.0.0.1:5174'
+      'http://127.0.0.1:5174',
+      'https://thestackgame.netlify.app'
     ];
     
     if (allowedOrigins.indexOf(origin) !== -1) {
@@ -293,9 +299,8 @@ async function startServer() {
     if (!dbConnected) {
       console.warn('⚠️  Database connection failed - running without database features');
     } else {
-      // Initialize database schema
-      await initializeDatabase();
-      console.log('✅ Database initialized successfully');
+      // Using Supabase - no local database initialization needed
+      console.log('✅ Database connection verified - using Supabase');
     }
   } catch (error) {
     console.warn('⚠️  Database initialization failed - running without database features:', error.message);
@@ -304,7 +309,7 @@ async function startServer() {
   // Start the server
   server.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`🌐 CORS: localhost:5173, localhost:4173, localhost:5174`);
+    console.log(`🌐 CORS: localhost:5173, localhost:4173, localhost:5174, thestackgame.netlify.app`);
     console.log(`🎮 Ready for connections!`);
   });
 }
