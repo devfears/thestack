@@ -93,6 +93,30 @@ app.use('/api', (req, res, next) => {
   }
 });
 
+// Tower management API endpoints
+app.post('/api/tower/clear', (req, res) => {
+  try {
+    // Clear the tower state
+    const clearedBricks = brickManager.getTowerState().tower.length;
+    
+    // Update in-memory state
+    brickManager.clearTower();
+    
+    // Broadcast to all connected clients
+    io.emit('tower-cleared');
+    
+    console.log(`🧹 Tower cleared via API - removed ${clearedBricks} bricks`);
+    res.json({ 
+      success: true, 
+      message: 'Tower cleared successfully',
+      bricksRemoved: clearedBricks
+    });
+  } catch (error) {
+    console.error('Error clearing tower:', error);
+    res.status(500).json({ error: 'Failed to clear tower' });
+  }
+});
+
 // Leaderboard API endpoints
 app.get('/api/leaderboard/global', async (req, res) => {
   try {
