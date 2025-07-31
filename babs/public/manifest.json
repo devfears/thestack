@@ -1,0 +1,13 @@
+{
+  "accountAssociation": {
+    "header": "eyJmaWQiOjEwMjM0MTYsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHgwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAifQ"
+  },
+  "frame": {
+    "name": "The Stack",
+    "iconUrl": "https://thestackgame.netlify.app/icon-192.png",
+    "splashImageUrl": "https://thestackgame.netlify.app/splash.png",
+    "homeUrl": "https://thestackgame.netlify.app",
+    "imageUrl": "https://thestackgame.netlify.app/preview.png",
+    "version": "1.0.0"
+  }
+}
