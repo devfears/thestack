@@ -15,11 +15,11 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      external: ["@farcaster/miniapp-wagmi-connector"]
+      // Remove the external configuration that was causing issues
     }
   },
   optimizeDeps: {
-    exclude: ["@farcaster/miniapp-wagmi-connector"],
+    // Remove the exclude configuration that was causing issues
     include: ["eventemitter3"]
   }
 });
