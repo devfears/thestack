@@ -20,7 +20,17 @@ export class UnifiedBrickSystem {
   public readonly CELL_SIZE = 0.4;
   private readonly BRICK_HEIGHT = 0.24; // 0.4 * 0.6
   public readonly GRID_SIZE = 60; // 60x60 grid
-  private readonly MAX_LAYERS = 20;
+  private readonly MAX_LAYERS = 100; // Support infinite tower
+  
+  // Performance optimization settings
+  private readonly LOD_DISTANCE_NEAR = 20;
+  private readonly LOD_DISTANCE_FAR = 50;
+  private readonly RENDER_DISTANCE = 100;
+  private readonly CHUNK_SIZE = 10; // Group bricks into chunks
+  private readonly MAX_VISIBLE_LAYERS = 15; // Only render nearby layers
+  
+  // Camera mode settings
+  private fullViewMode: boolean = false; // When true, shows all layers
   
   // Platform info
   private platformTop: number = 0;
@@ -35,6 +45,13 @@ export class UnifiedBrickSystem {
   private currentLayer = 0;
   private completedLayers: boolean[] = new Array(this.MAX_LAYERS).fill(false);
   
+  // Performance optimization: Instanced rendering
+  private instancedMeshes: Map<number, THREE.InstancedMesh> = new Map();
+  private brickInstances: Map<string, { layer: number, instanceId: number, color: number }> = new Map();
+  private layerChunks: Map<number, THREE.Group> = new Map();
+  private visibleLayers: Set<number> = new Set();
+  private lastCameraPosition: THREE.Vector3 = new THREE.Vector3();
+  
   // Colors
   private brickColors = [
     0xFF6B6B, 0x4ECDC4, 0x45B7D1, 0x96CEB4,
@@ -47,6 +64,12 @@ export class UnifiedBrickSystem {
   private performanceMode: boolean = false;
   private lastPerformanceCheck: number = 0;
   private frameCount: number = 0;
+  private currentFPS: number = 60;
+  
+  // Instanced rendering setup
+  private instancedBrickCount: Map<number, number> = new Map();
+  private maxInstancesPerColor = 5000;
+  private needsInstanceUpdate = false;
 
   constructor(scene: THREE.Scene, sceneObjects: SceneObjects, gameState: GameState, multiplayerSystem: SimpleMultiplayerSystem, animationSystem: AnimationSystemManager) {
     this.scene = scene;
@@ -61,6 +84,9 @@ export class UnifiedBrickSystem {
   private initializeSystem(): void {
     // Calculate platform info
     this.calculatePlatformInfo();
+    
+    // Initialize instanced rendering
+    this.initializeInstancedRendering();
     
     // Note: Carried brick and ghost brick will be created after master brick is loaded
   }
@@ -82,6 +108,207 @@ export class UnifiedBrickSystem {
   // Method to recalculate platform info after platform is loaded
   public recalculatePlatformInfo(): void {
     this.calculatePlatformInfo();
+  }
+
+  // Initialize instanced rendering for performance
+  private initializeInstancedRendering(): void {
+    // Create shared geometry for all bricks
+    this.sharedBrickGeometry = new THREE.BoxGeometry(this.CELL_SIZE * 0.9, this.BRICK_HEIGHT, this.CELL_SIZE * 0.9);
+    
+    // Create instanced meshes for each color
+    this.brickColors.forEach((color, index) => {
+      const material = new THREE.MeshLambertMaterial({ color });
+      this.materialCache.set(color, material);
+      
+      const instancedMesh = new THREE.InstancedMesh(
+        this.sharedBrickGeometry,
+        material,
+        this.maxInstancesPerColor
+      );
+      instancedMesh.name = `InstancedBricks_${color}`;
+      instancedMesh.castShadow = true;
+      instancedMesh.receiveShadow = true;
+      
+      // Hide initially (no instances)
+      instancedMesh.count = 0;
+      this.instancedMeshes.set(color, instancedMesh);
+      this.scene.add(instancedMesh);
+      
+      this.instancedBrickCount.set(color, 0);
+    });
+  }
+
+  // Optimize rendering based on camera position and performance
+  public updateLOD(cameraPosition: THREE.Vector3): void {
+    const currentTime = performance.now();
+    
+    // Check FPS and adjust quality
+    if (currentTime - this.lastPerformanceCheck > 1000) {
+      this.currentFPS = this.frameCount;
+      this.frameCount = 0;
+      this.lastPerformanceCheck = currentTime;
+      
+      // Enable performance mode if FPS drops below 30
+      this.performanceMode = this.currentFPS < 30;
+    }
+    this.frameCount++;
+    
+    // Update visible layers based on camera height
+    this.updateVisibleLayers(cameraPosition);
+    
+    // Update instanced meshes if needed
+    if (this.needsInstanceUpdate) {
+      this.updateInstancedMeshes();
+      this.needsInstanceUpdate = false;
+    }
+  }
+
+  // Update which layers should be visible based on camera position
+  private updateVisibleLayers(cameraPosition: THREE.Vector3): void {
+    let minVisibleLayer = 0;
+    let maxVisibleLayer = this.currentLayer + 1;
+    
+    // In full view mode, show all layers (with performance considerations)
+    if (this.fullViewMode) {
+      maxVisibleLayer = Math.min(this.MAX_LAYERS, this.currentLayer + 1);
+      // Still limit if performance is poor
+      if (this.performanceMode && this.currentLayer > 30) {
+        // In performance mode with high towers, show fewer layers even in full view
+        const cameraHeight = cameraPosition.y;
+        const layerHeight = this.BRICK_HEIGHT;
+        minVisibleLayer = Math.max(0, Math.floor((cameraHeight - this.RENDER_DISTANCE * 2) / layerHeight));
+        maxVisibleLayer = Math.min(this.currentLayer + 1, Math.ceil((cameraHeight + this.RENDER_DISTANCE * 2) / layerHeight));
+      }
+    } else {
+      // Normal mode: only show layers near camera
+      const cameraHeight = cameraPosition.y;
+      const layerHeight = this.BRICK_HEIGHT;
+      minVisibleLayer = Math.max(0, Math.floor((cameraHeight - this.RENDER_DISTANCE) / layerHeight));
+      maxVisibleLayer = Math.min(this.currentLayer + 1, Math.ceil((cameraHeight + this.RENDER_DISTANCE) / layerHeight));
+    }
+    
+    // Update visibility
+    for (let layer = 0; layer < this.MAX_LAYERS; layer++) {
+      const shouldBeVisible = layer >= minVisibleLayer && layer <= maxVisibleLayer;
+      
+      if (shouldBeVisible && !this.visibleLayers.has(layer)) {
+        this.visibleLayers.add(layer);
+        this.showLayer(layer);
+      } else if (!shouldBeVisible && this.visibleLayers.has(layer)) {
+        this.visibleLayers.delete(layer);
+        this.hideLayer(layer);
+      }
+    }
+  }
+
+  // Performance-optimized brick placement using instanced rendering
+  private createOptimizedBrick(position: THREE.Vector3, color: number, layer: number): THREE.Object3D {
+    const brickId = `${position.x}_${position.z}_${layer}`;
+    
+    // Use instanced rendering for better performance
+    if (this.placedBricks.length > 100 || this.performanceMode) {
+      return this.createInstancedBrick(position, color, layer, brickId);
+    } else {
+      // Use individual meshes for fewer bricks (better for animations)
+      return this.createIndividualBrick(position, color);
+    }
+  }
+
+  // Create brick using instanced rendering (high performance)
+  private createInstancedBrick(position: THREE.Vector3, color: number, layer: number, brickId: string): THREE.Object3D {
+    const instancedMesh = this.instancedMeshes.get(color);
+    if (!instancedMesh) return this.createIndividualBrick(position, color);
+    
+    const currentCount = this.instancedBrickCount.get(color) || 0;
+    if (currentCount >= this.maxInstancesPerColor) {
+      // Fallback to individual brick if we hit the instance limit
+      return this.createIndividualBrick(position, color);
+    }
+    
+    // Create transform matrix for the instance
+    const matrix = new THREE.Matrix4();
+    matrix.setPosition(position);
+    
+    instancedMesh.setMatrixAt(currentCount, matrix);
+    instancedMesh.count = currentCount + 1;
+    instancedMesh.instanceMatrix.needsUpdate = true;
+    
+    // Store instance info
+    this.brickInstances.set(brickId, {
+      layer,
+      instanceId: currentCount,
+      color
+    });
+    
+    this.instancedBrickCount.set(color, currentCount + 1);
+    this.needsInstanceUpdate = true;
+    
+    // Return a placeholder object for compatibility
+    const placeholder = new THREE.Object3D();
+    placeholder.position.copy(position);
+    placeholder.userData = { isInstancedBrick: true, brickId, color, layer };
+    
+    return placeholder;
+  }
+
+  // Create individual brick (lower performance but supports animations)
+  private createIndividualBrick(position: THREE.Vector3, color: number): THREE.Object3D {
+    if (!this.sharedBrickGeometry) {
+      this.sharedBrickGeometry = new THREE.BoxGeometry(this.CELL_SIZE * 0.9, this.BRICK_HEIGHT, this.CELL_SIZE * 0.9);
+    }
+    
+    let material = this.materialCache.get(color);
+    if (!material) {
+      material = new THREE.MeshLambertMaterial({ color });
+      this.materialCache.set(color, material);
+    }
+    
+    const brick = new THREE.Mesh(this.sharedBrickGeometry, material);
+    brick.position.copy(position);
+    brick.castShadow = true;
+    brick.receiveShadow = true;
+    brick.userData = { isInstancedBrick: false, color };
+    
+    return brick;
+  }
+
+  // Update instanced meshes
+  private updateInstancedMeshes(): void {
+    this.instancedMeshes.forEach((mesh, color) => {
+      if (mesh.instanceMatrix.needsUpdate) {
+        mesh.instanceMatrix.needsUpdate = true;
+      }
+    });
+  }
+
+  // Show/hide layers for performance
+  private showLayer(layer: number): void {
+    const chunk = this.layerChunks.get(layer);
+    if (chunk) {
+      chunk.visible = true;
+    }
+  }
+
+  private hideLayer(layer: number): void {
+    const chunk = this.layerChunks.get(layer);
+    if (chunk) {
+      chunk.visible = false;
+    }
+  }
+
+  // Add brick to layer chunk for performance management
+  private addBrickToLayerChunk(brick: THREE.Object3D, layer: number): void {
+    let chunk = this.layerChunks.get(layer);
+    if (!chunk) {
+      chunk = new THREE.Group();
+      chunk.name = `Layer_${layer}`;
+      this.layerChunks.set(layer, chunk);
+      this.scene.add(chunk);
+    }
+    // For instanced bricks, we don't add them to chunks since they're managed by InstancedMesh
+    if (!brick.userData.isInstancedBrick) {
+      chunk.add(brick);
+    }
   }
 
   private calculatePlatformInfo(): void {
@@ -447,8 +674,8 @@ export class UnifiedBrickSystem {
         brickColor = ((this.carriedBrick as THREE.Mesh).material as THREE.MeshStandardMaterial).color.getHex();
     }
 
-    // Use optimized brick creation for better performance
-    const brick = this.createOptimizedBrickMesh(exactWorldPos, brickColor);
+    // Use the new performance-optimized brick creation system
+    const brick = this.createOptimizedBrick(exactWorldPos, brickColor, gridPos.layer);
     
     // Add to scene and tracking
     brick.userData.gridPosition = gridPos;
@@ -456,6 +683,9 @@ export class UnifiedBrickSystem {
     
     // Performance monitoring and optimization
     this.checkAndOptimizePerformance();
+    
+    // Add to layer chunk for performance management
+    this.addBrickToLayerChunk(brick, gridPos.layer);
     
     this.scene.add(brick);
     this.placedBricks.push(brick);
@@ -741,7 +971,7 @@ export class UnifiedBrickSystem {
      });
    }
 
-  // Getters
+  // Getters and view mode controls
   public getGridSize(): { x: number, z: number } {
     return { x: this.GRID_SIZE, z: this.GRID_SIZE };
   }
@@ -749,6 +979,22 @@ export class UnifiedBrickSystem {
   public getPlatformTop(): number { return this.platformTop; }
   public isCarryingBrick(): boolean { return this.gameState.isCarryingBrick; }
   public getPlacedBricksCount(): number { return this.placedBricks.length; }
+  
+  // View mode controls
+  public setFullViewMode(enabled: boolean): void {
+    this.fullViewMode = enabled;
+    console.log(`🌍 Full view mode ${enabled ? 'enabled' : 'disabled'}`);
+  }
+  
+  public isFullViewMode(): boolean {
+    return this.fullViewMode;
+  }
+  
+  public toggleFullViewMode(): boolean {
+    this.fullViewMode = !this.fullViewMode;
+    console.log(`🌍 Full view mode ${this.fullViewMode ? 'enabled' : 'disabled'}`);
+    return this.fullViewMode;
+  }
 
   public debugFillCurrentLayer(): void {
     for (let x = 0; x < this.GRID_SIZE; x++) {

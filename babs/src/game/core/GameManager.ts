@@ -370,6 +370,11 @@ export class GameManager {
       this.gameState.cameraFollowEnabled
     );
 
+    // Update brick system LOD for performance optimization
+    if (this.brickSystem && this.sceneSystem.camera) {
+      this.brickSystem.updateLOD(this.sceneSystem.camera.position);
+    }
+
     // Render nametags
     this.modelLoader.renderLabels();
 
@@ -380,6 +385,19 @@ export class GameManager {
   // Public methods for external control
   public toggleCameraFollow(): void {
     this.stateManager.toggleCameraFollow();
+  }
+
+  // View mode controls for full tower visibility
+  public toggleFullViewMode(): boolean {
+    return this.brickSystem.toggleFullViewMode();
+  }
+
+  public setFullViewMode(enabled: boolean): void {
+    this.brickSystem.setFullViewMode(enabled);
+  }
+
+  public isFullViewMode(): boolean {
+    return this.brickSystem.isFullViewMode();
   }
 
   public pickupBrick(): void {

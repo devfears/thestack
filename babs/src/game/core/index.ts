@@ -11,7 +11,7 @@ export { AnimationSystemManager } from '../character/AnimationSystem';
 export { InputSystemManager } from '../input/InputSystem';
 export { WaterSystemManager } from '../scene/WaterSystem';
 export { ModelLoaderManager } from '../scene/ModelLoader';
-export { RefactoredBuildingSystem } from '../building';
+export { UnifiedBrickSystem } from '../building';
 
 // Hooks
 export { useGame } from './useGame';

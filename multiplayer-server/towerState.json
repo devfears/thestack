@@ -219,10 +219,186 @@
       "playerId": "yTx42sfml29ehuZUAABz",
       "playerName": "Demo User 6512",
       "id": "yTx42sfml29ehuZUAABz-1753941878469-q4797o7ay"
+    },
+    {
+      "position": {
+        "x": 0.40000000000000036,
+        "y": 2.37,
+        "z": 5.6000000000000005
+      },
+      "worldPosition": {
+        "x": 0.40000000000000036,
+        "y": 2.37,
+        "z": 5.6000000000000005
+      },
+      "color": 16752627,
+      "gridPosition": {
+        "x": 23,
+        "z": 6,
+        "layer": 0
+      },
+      "timestamp": 1753943810766,
+      "playerId": "yTx42sfml29ehuZUAABz",
+      "playerName": "Demo User 6512",
+      "id": "yTx42sfml29ehuZUAABz-1753943810766-wjlenvpdz"
+    },
+    {
+      "position": {
+        "x": -1.6000000000000005,
+        "y": 2.37,
+        "z": 8.8
+      },
+      "worldPosition": {
+        "x": -1.6000000000000005,
+        "y": 2.37,
+        "z": 8.8
+      },
+      "color": 16752627,
+      "gridPosition": {
+        "x": 18,
+        "z": 14,
+        "layer": 0
+      },
+      "timestamp": 1753943817744,
+      "playerId": "yTx42sfml29ehuZUAABz",
+      "playerName": "Demo User 6512",
+      "id": "yTx42sfml29ehuZUAABz-1753943817744-3inv7b15o"
+    },
+    {
+      "position": {
+        "x": -7.6000000000000005,
+        "y": 2.37,
+        "z": 8.4
+      },
+      "worldPosition": {
+        "x": -7.6000000000000005,
+        "y": 2.37,
+        "z": 8.4
+      },
+      "color": 9883316,
+      "gridPosition": {
+        "x": 3,
+        "z": 13,
+        "layer": 0
+      },
+      "timestamp": 1753943825179,
+      "playerId": "yTx42sfml29ehuZUAABz",
+      "playerName": "Demo User 6512",
+      "id": "yTx42sfml29ehuZUAABz-1753943825179-v8yz10bzi"
+    },
+    {
+      "position": {
+        "x": -7.6000000000000005,
+        "y": 2.37,
+        "z": 14
+      },
+      "worldPosition": {
+        "x": -7.6000000000000005,
+        "y": 2.37,
+        "z": 14
+      },
+      "color": 9883316,
+      "gridPosition": {
+        "x": 3,
+        "z": 27,
+        "layer": 0
+      },
+      "timestamp": 1753943973964,
+      "playerId": "9coad1kUNXa4yawRAACB",
+      "playerName": "Demo User 9631",
+      "id": "9coad1kUNXa4yawRAACB-1753943973964-axr3uop8w"
+    },
+    {
+      "position": {
+        "x": -4.4,
+        "y": 2.37,
+        "z": 5.6000000000000005
+      },
+      "worldPosition": {
+        "x": -4.4,
+        "y": 2.37,
+        "z": 5.6000000000000005
+      },
+      "color": 16739179,
+      "gridPosition": {
+        "x": 11,
+        "z": 6,
+        "layer": 0
+      },
+      "timestamp": 1753943980238,
+      "playerId": "9coad1kUNXa4yawRAACB",
+      "playerName": "Demo User 9631",
+      "id": "9coad1kUNXa4yawRAACB-1753943980238-z2t9zt72p"
+    },
+    {
+      "position": {
+        "x": -4.4,
+        "y": 2.37,
+        "z": 10.8
+      },
+      "worldPosition": {
+        "x": -4.4,
+        "y": 2.37,
+        "z": 10.8
+      },
+      "color": 10656766,
+      "gridPosition": {
+        "x": 11,
+        "z": 19,
+        "layer": 0
+      },
+      "timestamp": 1753943995643,
+      "playerId": "9coad1kUNXa4yawRAACB",
+      "playerName": "Demo User 9631",
+      "id": "9coad1kUNXa4yawRAACB-1753943995643-o67e10kq6"
+    },
+    {
+      "position": {
+        "x": -8,
+        "y": 2.37,
+        "z": 4.4
+      },
+      "worldPosition": {
+        "x": -8,
+        "y": 2.37,
+        "z": 4.4
+      },
+      "color": 16752627,
+      "gridPosition": {
+        "x": 2,
+        "z": 3,
+        "layer": 0
+      },
+      "timestamp": 1753944031903,
+      "playerId": "8a1w79dTuGzcEqbKAACD",
+      "playerName": "Demo User 9911",
+      "id": "8a1w79dTuGzcEqbKAACD-1753944031903-l4s64o9h0"
+    },
+    {
+      "position": {
+        "x": -4.4,
+        "y": 2.37,
+        "z": 12.400000000000002
+      },
+      "worldPosition": {
+        "x": -4.4,
+        "y": 2.37,
+        "z": 12.400000000000002
+      },
+      "color": 5164484,
+      "gridPosition": {
+        "x": 11,
+        "z": 23,
+        "layer": 0
+      },
+      "timestamp": 1753945589796,
+      "playerId": "Y-qdVM1yq1ssc1glAACe",
+      "playerName": "Demo User 4302",
+      "id": "Y-qdVM1yq1ssc1glAACe-1753945589796-e6xshuu7f"
     }
   ],
   "currentLayer": 0,
-  "lastUpdated": 1753943522513,
+  "lastUpdated": 1753985765582,
   "version": 1,
   "lastLoaded": 1753926853372
 }
