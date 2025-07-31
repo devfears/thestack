@@ -3,13 +3,14 @@ const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors');
 const BrickPersistenceManager = require('./BrickPersistenceManager');
+const { initializeDatabase, upsertPlayer, updatePlayerStats, getLeaderboard, getDailyLeaderboard, getPlayerStats, testConnection } = require('./database');
 
 const app = express();
 const server = http.createServer(app);
 
 const io = socketIo(server, {
   cors: {
-    origin: "*",
+    origin: ["http://localhost:5173", "http://localhost:4173", "http://localhost:5174"],
     methods: ["GET", "POST"],
     credentials: true
   },
@@ -18,9 +19,31 @@ const io = socketIo(server, {
   connectTimeout: 45000 // 45 seconds connection timeout
 });
 
+// More permissive CORS configuration for development
 app.use(cors({
-  origin: ["http://localhost:5173", "http://localhost:4173"],
-  credentials: true
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      'http://localhost:5173',
+      'http://localhost:4173', 
+      'http://localhost:5174',
+      'http://127.0.0.1:5173',
+      'http://127.0.0.1:5174'
+    ];
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 200 // For legacy browser support
 }));
 
 app.use(express.json());
@@ -42,10 +65,62 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Add CORS headers middleware for API routes
+app.use('/api', (req, res, next) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
+
+// Leaderboard API endpoints
+app.get('/api/leaderboard/global', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 50;
+    const leaderboard = await getLeaderboard(limit);
+    res.json(leaderboard);
+  } catch (error) {
+    console.error('Error getting global leaderboard:', error);
+    res.status(500).json({ error: 'Failed to get leaderboard' });
+  }
+});
+
+app.get('/api/leaderboard/daily', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 50;
+    const leaderboard = await getDailyLeaderboard(limit);
+    res.json(leaderboard);
+  } catch (error) {
+    console.error('Error getting daily leaderboard:', error);
+    res.status(500).json({ error: 'Failed to get daily leaderboard' });
+  }
+});
+
+app.get('/api/player/:fid/stats', async (req, res) => {
+  try {
+    const fid = parseInt(req.params.fid);
+    const stats = await getPlayerStats(fid);
+    if (stats) {
+      res.json(stats);
+    } else {
+      res.status(404).json({ error: 'Player not found' });
+    }
+  } catch (error) {
+    console.error('Error getting player stats:', error);
+    res.status(500).json({ error: 'Failed to get player stats' });
+  }
+});
+
 io.on('connection', (socket) => {
   console.log(`New connection: ${socket.id}`);
 
-  socket.on('player-join', (playerData) => {
+  socket.on('player-join', async (playerData) => {
     if (!playerData?.username) return;
     
     const newPlayer = {
@@ -57,6 +132,19 @@ io.on('connection', (socket) => {
     
     console.log(`Player joined: ${playerData.username} (${socket.id})`);
     console.log(`Total players now: ${players.size}`);
+    
+    // Update player in database
+    try {
+      await upsertPlayer({
+        fid: playerData.fid,
+        username: playerData.username,
+        displayName: playerData.displayName,
+        pfpUrl: playerData.pfpUrl
+      });
+      console.log(`📊 Player ${playerData.displayName} updated in database`);
+    } catch (error) {
+      console.error('💥 Failed to update player in database:', error);
+    }
     
     // Emit to all clients including the new player
     io.emit('current-players', Array.from(players.values()));
@@ -83,7 +171,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('brick-placed', (brickData) => {
+  socket.on('brick-placed', async (brickData) => {
     const player = players.get(socket.id);
     if (player) {
       // Use persistence manager to add brick with deduplication
@@ -96,6 +184,14 @@ io.on('connection', (socket) => {
         
         console.log(`✅ Brick placed by ${player.displayName} at:`, placedBrick.gridPosition);
         console.log(`📊 Total bricks in tower: ${currentState.tower.length}`);
+        
+        // Update player stats in database
+        try {
+          await updatePlayerStats(player.fid, true);
+          console.log(`📊 Updated database stats for ${player.displayName}`);
+        } catch (error) {
+          console.error('💥 Failed to update player stats in database:', error);
+        }
         
         // Emit to all clients including the sender (for validation)
         io.emit('brick-placed', placedBrick);
@@ -156,11 +252,31 @@ io.on('connection', (socket) => {
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`🌐 CORS: localhost:5173, localhost:4173`);
-  console.log(`🎮 Ready for connections!`);
-});
+// Initialize database and start server
+async function startServer() {
+  try {
+    // Test database connection
+    const dbConnected = await testConnection();
+    if (!dbConnected) {
+      console.warn('⚠️  Database connection failed - running without database features');
+    } else {
+      // Initialize database schema
+      await initializeDatabase();
+      console.log('✅ Database initialized successfully');
+    }
+  } catch (error) {
+    console.warn('⚠️  Database initialization failed - running without database features:', error.message);
+  }
+
+  // Start the server
+  server.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`🌐 CORS: localhost:5173, localhost:4173, localhost:5174`);
+    console.log(`🎮 Ready for connections!`);
+  });
+}
+
+startServer();
 
 process.on('SIGINT', () => {
   console.log('Shutting down...');

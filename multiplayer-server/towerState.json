@@ -21,10 +21,208 @@
       "playerId": "aqUr4BXV23qvWp8EAAAD",
       "playerName": "Demo User 3731",
       "id": "aqUr4BXV23qvWp8EAAAD-1753902081099-1xueiygyo"
+    },
+    {
+      "position": {
+        "x": -6.800000000000001,
+        "y": 2.37,
+        "z": 5.6000000000000005
+      },
+      "worldPosition": {
+        "x": -6.800000000000001,
+        "y": 2.37,
+        "z": 5.6000000000000005
+      },
+      "color": 16697943,
+      "gridPosition": {
+        "x": 5,
+        "z": 6,
+        "layer": 0
+      },
+      "timestamp": 1753924684632,
+      "playerId": "h5SpgtnK8zJtOaf6AAAB",
+      "playerName": "Demo User 7863",
+      "id": "h5SpgtnK8zJtOaf6AAAB-1753924684632-ca3cmcm2k"
+    },
+    {
+      "position": {
+        "x": -4,
+        "y": 2.37,
+        "z": 7.2
+      },
+      "worldPosition": {
+        "x": -4,
+        "y": 2.37,
+        "z": 7.2
+      },
+      "color": 9883316,
+      "gridPosition": {
+        "x": 12,
+        "z": 10,
+        "layer": 0
+      },
+      "timestamp": 1753924699357,
+      "playerId": "LIHSFIwuovn5P7bvAAAD",
+      "playerName": "Demo User 9167",
+      "id": "LIHSFIwuovn5P7bvAAAD-1753924699357-tv8fv9pr2"
+    },
+    {
+      "position": {
+        "x": -6.800000000000001,
+        "y": 2.37,
+        "z": 9.600000000000001
+      },
+      "worldPosition": {
+        "x": -6.800000000000001,
+        "y": 2.37,
+        "z": 9.600000000000001
+      },
+      "color": 16752627,
+      "gridPosition": {
+        "x": 5,
+        "z": 16,
+        "layer": 0
+      },
+      "timestamp": 1753925525673,
+      "playerId": "QQqLJf6yNdpJ_nZ5AAAH",
+      "playerName": "Demo User 4161",
+      "id": "QQqLJf6yNdpJ_nZ5AAAH-1753925525673-2zachu4tg"
+    },
+    {
+      "position": {
+        "x": -6.4,
+        "y": 2.37,
+        "z": 11.600000000000001
+      },
+      "worldPosition": {
+        "x": -6.4,
+        "y": 2.37,
+        "z": 11.600000000000001
+      },
+      "color": 16752627,
+      "gridPosition": {
+        "x": 6,
+        "z": 21,
+        "layer": 0
+      },
+      "timestamp": 1753925532713,
+      "playerId": "QQqLJf6yNdpJ_nZ5AAAH",
+      "playerName": "Demo User 4161",
+      "id": "QQqLJf6yNdpJ_nZ5AAAH-1753925532713-p7fo8ub1m"
+    },
+    {
+      "position": {
+        "x": -6.4,
+        "y": 2.37,
+        "z": 7.2
+      },
+      "worldPosition": {
+        "x": -6.4,
+        "y": 2.37,
+        "z": 7.2
+      },
+      "color": 10656766,
+      "gridPosition": {
+        "x": 6,
+        "z": 10,
+        "layer": 0
+      },
+      "timestamp": 1753925538614,
+      "playerId": "QQqLJf6yNdpJ_nZ5AAAH",
+      "playerName": "Demo User 4161",
+      "id": "QQqLJf6yNdpJ_nZ5AAAH-1753925538614-rqg9jjk8e"
+    },
+    {
+      "position": {
+        "x": -6,
+        "y": 2.37,
+        "z": 8.8
+      },
+      "worldPosition": {
+        "x": -6,
+        "y": 2.37,
+        "z": 8.8
+      },
+      "color": 16739179,
+      "gridPosition": {
+        "x": 7,
+        "z": 14,
+        "layer": 0
+      },
+      "timestamp": 1753925552155,
+      "playerId": "QQqLJf6yNdpJ_nZ5AAAH",
+      "playerName": "Demo User 4161",
+      "id": "QQqLJf6yNdpJ_nZ5AAAH-1753925552155-j4998fa1x"
+    },
+    {
+      "position": {
+        "x": -7.6000000000000005,
+        "y": 2.37,
+        "z": 3.2
+      },
+      "worldPosition": {
+        "x": -7.6000000000000005,
+        "y": 2.37,
+        "z": 3.2
+      },
+      "color": 16752627,
+      "gridPosition": {
+        "x": 3,
+        "z": 0,
+        "layer": 0
+      },
+      "timestamp": 1753925558038,
+      "playerId": "QQqLJf6yNdpJ_nZ5AAAH",
+      "playerName": "Demo User 4161",
+      "id": "QQqLJf6yNdpJ_nZ5AAAH-1753925558038-iodl6rn2e"
+    },
+    {
+      "position": {
+        "x": -7.6000000000000005,
+        "y": 2.37,
+        "z": 14.8
+      },
+      "worldPosition": {
+        "x": -7.6000000000000005,
+        "y": 2.37,
+        "z": 14.8
+      },
+      "color": 16739179,
+      "gridPosition": {
+        "x": 3,
+        "z": 29,
+        "layer": 0
+      },
+      "timestamp": 1753925569987,
+      "playerId": "QQqLJf6yNdpJ_nZ5AAAH",
+      "playerName": "Demo User 4161",
+      "id": "QQqLJf6yNdpJ_nZ5AAAH-1753925569987-mh7xzekph"
+    },
+    {
+      "position": {
+        "x": -6,
+        "y": 2.37,
+        "z": 13.2
+      },
+      "worldPosition": {
+        "x": -6,
+        "y": 2.37,
+        "z": 13.2
+      },
+      "color": 4569041,
+      "gridPosition": {
+        "x": 7,
+        "z": 25,
+        "layer": 0
+      },
+      "timestamp": 1753941878469,
+      "playerId": "yTx42sfml29ehuZUAABz",
+      "playerName": "Demo User 6512",
+      "id": "yTx42sfml29ehuZUAABz-1753941878469-q4797o7ay"
     }
   ],
   "currentLayer": 0,
-  "lastUpdated": 1753902324837,
+  "lastUpdated": 1753943492511,
   "version": 1,
-  "lastLoaded": 1753902294836
+  "lastLoaded": 1753926853372
 }
