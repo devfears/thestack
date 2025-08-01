@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { SceneObjects, GameState } from '../core/types';
 import { SimpleMultiplayerSystem } from '../systems/multiplayer/SimpleMultiplayerSystem';
 import { AnimationSystemManager } from '../character/AnimationSystem';
+import { UserProfile, canUserPlaceBricks, getDemoUserMessage, getUserType } from '../core/UserValidation';
 
 export interface BrickPosition {
   x: number;
@@ -15,6 +16,7 @@ export class UnifiedBrickSystem {
   private gameState: GameState;
   private multiplayerSystem: SimpleMultiplayerSystem;
   private animationSystem: AnimationSystemManager;
+  private currentUser: UserProfile | null = null;
   
   // Simple configuration
   public readonly CELL_SIZE = 0.4;
@@ -648,6 +650,19 @@ export class UnifiedBrickSystem {
   public placeBrick(): boolean {
     console.log('🧱 UnifiedBrickSystem.placeBrick called!');
     
+    // 🔒 FARCASTER USER RESTRICTION: Only allow real Farcaster users to place bricks
+    if (!canUserPlaceBricks(this.currentUser)) {
+      console.log('🚫 Demo user attempted to place brick:', getUserType(this.currentUser));
+      console.log('📢 Restriction message:', getDemoUserMessage());
+      
+      // Show user-friendly message (could be enhanced with UI toast later)
+      console.warn('🔒 Access Restricted:', getDemoUserMessage());
+      
+      return false;
+    }
+    
+    console.log('✅ Farcaster user placing brick:', getUserType(this.currentUser));
+    
     if (!this.gameState.isCarryingBrick || !this.ghostBrick) {
       console.log('❌ Cannot place brick: isCarryingBrick =', this.gameState.isCarryingBrick, 'ghostBrick =', !!this.ghostBrick);
       return false;
@@ -712,10 +727,14 @@ export class UnifiedBrickSystem {
       gridPosition: gridPos
     };
     
-    // Send to multiplayer if connected
+    // Send to multiplayer if connected and user is authorized
     if (this.multiplayerSystem.isMultiplayerEnabled()) {
-      console.log('📤 Sending brick placement to multiplayer system');
-      this.multiplayerSystem.sendBrickPlaced(brickData);
+      if (canUserPlaceBricks(this.currentUser)) {
+        console.log('📤 Sending brick placement to multiplayer system');
+        this.multiplayerSystem.sendBrickPlaced(brickData);
+      } else {
+        console.log('🚫 Demo user brick placement not sent to multiplayer');
+      }
     } else {
       console.log('⚠️ Multiplayer not connected, skipping network send');
     }
@@ -1019,7 +1038,13 @@ export class UnifiedBrickSystem {
               color: color,
               gridPosition: gridPos
             };
-            this.multiplayerSystem.sendBrickPlaced(brickData);
+            
+            // Only send to multiplayer if user is authorized
+            if (canUserPlaceBricks(this.currentUser)) {
+              this.multiplayerSystem.sendBrickPlaced(brickData);
+            } else {
+              console.log('🚫 Demo user bulk brick placement not sent to multiplayer');
+            }
           }
         }
       }
@@ -1049,5 +1074,14 @@ export class UnifiedBrickSystem {
     this.completedLayers.fill(false);
     // Clear stairs if they exist
     // This requires stairs to be identifiable, e.g., by adding userData
+  }
+
+  /**
+   * Set the current user for access control
+   * @param user The current user profile or null for demo users
+   */
+  public setCurrentUser(user: UserProfile | null): void {
+    this.currentUser = user;
+    console.log('👤 UnifiedBrickSystem user set:', getUserType(user));
   }
 }

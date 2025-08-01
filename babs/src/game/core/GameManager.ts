@@ -19,6 +19,7 @@ import { MultiplayerManager } from './MultiplayerManager';
 import { BuildingManager } from './BuildingManager';
 import { DebugManager } from './DebugManager';
 import { StateManager } from './StateManager';
+import { canUserPlaceBricks, getUserType } from './UserValidation';
 
 export class GameManager {
   // Core systems
@@ -129,6 +130,10 @@ export class GameManager {
     this.multiplayerSystem = new SimpleMultiplayerSystem(this, this.sceneSystem.scene);
 
     this.brickSystem = new UnifiedBrickSystem(this.sceneSystem.scene, this.sceneObjects, this.gameState, this.multiplayerSystem, this.animationSystem);
+    
+    // Set current user for access control in brick system
+    this.brickSystem.setCurrentUser(this.user);
+    
     this.modelLoader = new ModelLoaderManager(
       this.sceneSystem.scene,
       this.sceneObjects,
@@ -439,7 +444,13 @@ export class GameManager {
   }
 
   public setUser(user: UserProfile): void {
+    this.user = user;
     this.stateManager.setUserProfile(user);
+    
+    // Update brick system user for access control
+    if (this.brickSystem) {
+      this.brickSystem.setCurrentUser(user);
+    }
   }
 
   public getGameState(): Readonly<GameState> {
@@ -874,7 +885,12 @@ export class GameManager {
 
   // Chat methods
   public sendChatMessage(text: string, user: any): void {
-    this.multiplayerSystem.sendChatMessage(text, user);
+    // Filter demo user chat messages from multiplayer
+    if (canUserPlaceBricks(user)) {
+      this.multiplayerSystem.sendChatMessage(text, user);
+    } else {
+      console.log('🚫 Demo user chat message not sent to multiplayer:', getUserType(user));
+    }
   }
 
   // Nametag methods
