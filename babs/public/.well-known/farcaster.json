@@ -21,6 +21,7 @@
     "tags": ["multiplayer", "building", "community", "blocks", "tower"],
     "ogTitle": "community tower building game",
     "ogDescription": "place colorful blocks, compete on leaderboards, and watch the tower grow together degens!",
-    "ogImageUrl": "https://thestackgame.netlify.app/preview.png"
+    "ogImageUrl": "https://thestackgame.netlify.app/preview.png",
+    "castShareUrl": "https://thestackgame.netlify.app"
   }
 }
