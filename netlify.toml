@@ -28,7 +28,7 @@
 
 [[redirects]]
   from = "/.well-known/farcaster.json"
-  to = "https://api.farcaster.xyz/miniapps/hosted-manifest/01986494-3a17-cf77-af13-9a818695472d"
+  to = "https://api.farcaster.xyz/miniapps/hosted-manifest/01986682-efd2-a8bf-ab72-2622a37aeab2"
   status = 307
 
 [[redirects]]
