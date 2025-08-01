@@ -31,10 +31,13 @@
   [headers.values]
     cache-control = "public, max-age=300"
 
-[[redirects]]
-  from = "/.well-known/farcaster.json"
-  to = "https://api.farcaster.xyz/miniapps/hosted-manifest/01986682-efd2-a8bf-ab72-2622a37aeab2"
-  status = 307
+[[headers]]
+  for = "/.well-known/farcaster.json"
+  [headers.values]
+    content-type = "application/json"
+    cache-control = "public, max-age=3600"
+
+# Removed redirect to allow local .well-known/farcaster.json to be served
 
 [[redirects]]
   from = "/*"
