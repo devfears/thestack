@@ -12,6 +12,7 @@
     "imageUrl": "https://thestackgame.netlify.app/preview.png",
     "buttonTitle": "Play The Stack",
     "splashImageUrl": "https://thestackgame.netlify.app/splash.png",
-    "splashBackgroundColor": "#2563eb"
+    "splashBackgroundColor": "#2563eb",
+    "castShareUrl": "https://thestackgame.netlify.app"
   }
 }
