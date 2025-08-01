@@ -19,8 +19,8 @@
     "splashBackgroundColor": "#2563eb",
     "primaryCategory": "games",
     "tags": ["multiplayer", "building", "community", "blocks", "tower"],
-    "ogTitle": "The Stack - Community Tower Building Game",
-    "ogDescription": "Build the community tower brick by brick with players from around the world. Place colorful blocks, compete on leaderboards, and watch the tower grow together!",
+    "ogTitle": "community tower building game",
+    "ogDescription": "place colorful blocks, compete on leaderboards, and watch the tower grow together degens!",
     "ogImageUrl": "https://thestackgame.netlify.app/preview.png"
   }
 }
