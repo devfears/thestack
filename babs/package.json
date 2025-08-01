@@ -12,7 +12,7 @@
   "dependencies": {
     "@farcaster/frame-sdk": "latest",
     "@farcaster/frame-wagmi-connector": "latest",
-    "@farcaster/miniapp-sdk": "^0.1.7",
+    "@farcaster/miniapp-sdk": "^0.1.8",
     "@farcaster/miniapp-wagmi-connector": "^1.0.0",
     "@tanstack/react-query": "5.45.1",
     "nipplejs": "^0.10.2",

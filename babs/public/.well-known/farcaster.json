@@ -1,16 +1,15 @@
 {
+  "accountAssociation": {
+    "header": "eyJmaWQiOjEwMjM0MTYsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHgwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAifQ"
+  },
   "miniapp": {
     "version": "1",
-    "name": "3D World Mini App",
-    "iconUrl": "https://young-cars-clean.loca.lt/assets/icon.svg",
-  "homeUrl": "https://young-cars-clean.loca.lt",
-  "imageUrl": "https://young-cars-clean.loca.lt/assets/preview.svg",
-  "buttonTitle": "🌍 Enter 3D World",
-  "splashImageUrl": "https://young-cars-clean.loca.lt/assets/icon.svg",
-    "splashBackgroundColor": "#667eea",
-    "requiredCapabilities": [
-      "actions.signIn",
-      "wallet.getEthereumProvider"
-    ]
+    "name": "The Stack",
+    "iconUrl": "https://thestackgame.netlify.app/icon-192.png",
+    "homeUrl": "https://thestackgame.netlify.app",
+    "imageUrl": "https://thestackgame.netlify.app/preview.png",
+    "buttonTitle": "Play The Stack",
+    "splashImageUrl": "https://thestackgame.netlify.app/splash.png",
+    "splashBackgroundColor": "#2563eb"
   }
 }
