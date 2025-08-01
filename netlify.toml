@@ -6,6 +6,31 @@
 [build.environment]
   NODE_VERSION = "18"
 
+[[headers]]
+  for = "/*.png"
+  [headers.values]
+    cache-control = "public, max-age=3600"
+
+[[headers]]
+  for = "/preview.png"
+  [headers.values]
+    cache-control = "public, max-age=3600"
+
+[[headers]]
+  for = "/splash.png"
+  [headers.values]
+    cache-control = "public, max-age=3600"
+
+[[headers]]
+  for = "/icon-192.png"
+  [headers.values]
+    cache-control = "public, max-age=3600"
+
+[[redirects]]
+  from = "/.well-known/farcaster.json"
+  to = "https://api.farcaster.xyz/miniapps/hosted-manifest/01986494-3a17-cf77-af13-9a818695472d"
+  status = 307
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

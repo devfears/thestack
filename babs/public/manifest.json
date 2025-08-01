@@ -8,6 +8,9 @@
     "splashImageUrl": "https://thestackgame.netlify.app/splash.png",
     "homeUrl": "https://thestackgame.netlify.app",
     "imageUrl": "https://thestackgame.netlify.app/preview.png",
-    "version": "1.0.0"
+    "version": "1.0.0",
+    "ogTitle": "The Stack - Community Tower Building Game",
+    "ogDescription": "Build the community tower brick by brick with players from around the world",
+    "castShareUrl": "https://thestackgame.netlify.app"
   }
 }
