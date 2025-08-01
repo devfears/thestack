@@ -20,7 +20,7 @@
     "tags": ["social", "games", "3d", "blocks", "tower"],
     "heroImageUrl": "https://thestackgame.netlify.app/splash.png",
     "tagline": "Community Tower Building",
-    "ogTitle": "The Stack - Community Tower Building",
+    "ogTitle": "The Stack",
     "ogDescription": "Build a tower with friends, get on the leader board, create streaks, stack up more fun to come",
     "ogImageUrl": "https://thestackgame.netlify.app/preview.png"
   }
