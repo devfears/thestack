@@ -7,11 +7,15 @@
   "miniapp": {
     "version": "1",
     "name": "The Stack",
+    "subtitle": "Community Tower Building Game",
+    "description": "Build the community tower brick by brick with players from around the world. Place colorful blocks, compete on leaderboards, and watch the tower grow together!",
     "iconUrl": "https://thestackgame.netlify.app/icon-1024.png",
     "homeUrl": "https://thestackgame.netlify.app",
     "imageUrl": "https://thestackgame.netlify.app/preview.png",
     "buttonTitle": "Play The Stack",
     "splashImageUrl": "https://thestackgame.netlify.app/splash.png",
-    "splashBackgroundColor": "#2563eb"
+    "splashBackgroundColor": "#2563eb",
+    "primaryCategory": "games",
+    "tags": ["multiplayer", "building", "community", "blocks", "tower"]
   }
 }
