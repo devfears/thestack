@@ -11,6 +11,7 @@
     "version": "1.0.0",
     "ogTitle": "The Stack - Community Tower Building Game",
     "ogDescription": "Build the community tower brick by brick with players from around the world",
+    "ogImageUrl": "https://thestackgame.netlify.app/preview.png",
     "castShareUrl": "https://thestackgame.netlify.app"
   }
 }
